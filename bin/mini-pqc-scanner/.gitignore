@@ -1,0 +1,120 @@
+# Binaries and compiled files
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.bin
+*.o
+*.a
+*.out
+
+# Build artifacts
+.source.md5.old
+.source.md5.new
+.server_source.md5.old
+.server_source.md5.new
+
+# Go specific
+/vendor/
+
+# Webapp sensitive data and logs
+/webapp/logs/
+/webapp/data/
+/webapp/generated_scripts/
+/webapp/docker_results/
+/webapp/download/pqc-scanner-latest
+/webapp/download/pqc-scanner-client.tar.gz
+*.log
+*.backup
+
+# OpenAI API logs (contain sensitive data)
+openai_api_calls.log*
+/go.work
+
+# Third-party libraries and dependencies
+/liboqs/
+/openssl-3.2.0/
+/openssl-3.2.0.tar.gz
+/oqs-openssl-old/
+/oqs-provider/
+/oqs-provider/
+/pkg/testlib/
+
+
+# Local configuration files
+*.cnf
+ssl_conf_with_oqs.conf
+nginx-oqs.conf
+config/pqc.json
+config/cache/
+
+# Generated entropy files
+entropy*.bin
+
+# SSL certificates and keys
+*.pem
+*.key
+*.crt
+*.csr
+private.key
+
+# Report output files
+/report/*.json
+
+# Backup and temporary files
+*.old
+
+# Packet capture files
+*.pcap
+
+# Log files
+*.log
+
+# Test cache files
+unittest/whois/cache/
+
+# Packet capture files and directories
+/dump/
+*.pcap
+
+# WHOIS cache files
+/whois/cache/
+
+# Leads data
+website/leads/leads.csv
+/whois/cache/*.json
+
+# A2A recommendation data files
+/data/
+/data/*.json
+/webapp/data/
+/webapp/generated_scripts/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS specific files
+.DS_Store
+Thumbs.db
+step/LICENSE
+step/README.md
+step/autocomplete/bash_autocomplete
+step/autocomplete/README.md
+step/autocomplete/zsh_autocomplete
+step/bin/step
+step.tar.gz
+gnupg-2.5.7.tar.bz2
+pqc-scanner
+test-hybrid-key.txt
+main
+help_output.txt
+dfgf
+remove_notes_messages.sh
+config/cache/ver_http___154.53.43.159_8001.json
+docker-test/pqc-scanner-static

@@ -1,0 +1,446 @@
+{
+  "version": "1.0",
+  "description": "PQC readiness mapping for Linux applications and packages",
+  "last_updated": "2025-01-27",
+  "mappings": [
+    {
+      "name": "OpenSSL",
+      "rpm": ["openssl-libs", "openssl", "openssl-devel"],
+      "deb": ["libssl3", "openssl", "libssl-dev"],
+      "category": "Crypto Implementer",
+      "pqc_ready": "partial",
+      "comment": "PQC is experimental in 3.x branch"
+    },
+    {
+      "name": "GnuTLS",
+      "rpm": ["gnutls"],
+      "deb": ["libgnutls30", "gnutls-bin"],
+      "category": "Crypto Implementer",
+      "pqc_ready": "partial",
+      "comment": "Experimental PQC support"
+    },
+    {
+      "name": "GnuPG",
+      "rpm": ["gnupg2", "gpgme"],
+      "deb": ["gnupg", "gpgv", "libgpgme11"],
+      "category": "Crypto Implementer",
+      "pqc_ready": "no"
+    },
+    {
+      "name": "libsodium",
+      "rpm": ["libsodium"],
+      "deb": ["libsodium23"],
+      "category": "Crypto Implementer",
+      "pqc_ready": "partial",
+      "comment": "Kyber (as of 2025) not in stable, but research"
+    },
+    {
+      "name": "libgcrypt",
+      "rpm": ["libgcrypt"],
+      "deb": ["libgcrypt20"],
+      "category": "Crypto Implementer",
+      "pqc_ready": "no"
+    },
+    {
+      "name": "libgpg-error",
+      "rpm": ["libgpg-error"],
+      "deb": ["libgpg-error0"],
+      "category": "Crypto Implementer",
+      "pqc_ready": "no"
+    },
+    {
+      "name": "libssh",
+      "rpm": ["libssh"],
+      "deb": ["libssh-4"],
+      "category": "Crypto Implementer",
+      "pqc_ready": "partial",
+      "comment": "Hybrid/experimental PQC patches exist"
+    },
+    {
+      "name": "cURL",
+      "rpm": ["curl", "libcurl"],
+      "deb": ["curl", "libcurl4"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "partial",
+      "comment": "Only if built with PQC-OpenSSL, rare as of 2025"
+    },
+    {
+      "name": "Python",
+      "rpm": ["python3", "python3-libs", "python3-gpg", "python3-dnf", "python3-firewall", "python3-six", "python3-systemd", "python3.12", "python3.12-devel", "python3.12-libs", "python3.12-pip-wheel"],
+      "deb": ["python3", "python3-minimal", "libpython3"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "partial",
+      "comment": "Dependent on linked libraries"
+    },
+    {
+      "name": "OpenSSH",
+      "rpm": ["openssh", "openssh-clients", "openssh-server"],
+      "deb": ["openssh-client", "openssh-server"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "partial",
+      "comment": "Kyber NIST draft support via OQS patches"
+    },
+    {
+      "name": "Git",
+      "rpm": ["git", "git-core", "perl-Git"],
+      "deb": ["git"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "partial",
+      "comment": "Possible with PQC-enabled OpenSSL"
+    },
+    {
+      "name": "Nginx",
+      "rpm": ["nginx", "nginx-core"],
+      "deb": ["nginx", "nginx-core"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "partial",
+      "comment": "Only if linked to PQC OpenSSL"
+    },
+    {
+      "name": "Apache HTTPD",
+      "rpm": ["httpd", "httpd-core"],
+      "deb": ["apache2"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "partial",
+      "comment": "Only if linked to PQC OpenSSL"
+    },
+    {
+      "name": "PHP",
+      "rpm": ["php", "php-cli", "php-fpm", "php-common", "php-mysqlnd", "php-opcache", "php-xml", "php-pecl-imagick-im7", "php-intl", "php-gd", "php-mbstring", "php-sodium", "php-process"],
+      "deb": ["php", "php-cli", "php-fpm"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "partial",
+      "comment": "Dependent on system crypto libs"
+    },
+    {
+      "name": "MariaDB",
+      "rpm": ["mariadb-server", "mariadb-common", "mariadb-connector-c", "mariadb-connector-c-config"],
+      "deb": ["mariadb-server", "mariadb-client"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "partial"
+    },
+    {
+      "name": "Wireshark",
+      "rpm": ["wireshark", "wireshark-cli"],
+      "deb": ["wireshark", "tshark"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "partial",
+      "comment": "Dependent on system crypto"
+    },
+    {
+      "name": "tcpdump",
+      "rpm": ["tcpdump"],
+      "deb": ["tcpdump"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "partial"
+    },
+    {
+      "name": "NetworkManager",
+      "rpm": ["NetworkManager"],
+      "deb": ["network-manager"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "partial"
+    },
+    {
+      "name": "SELinux Policy Tools",
+      "rpm": ["policycoreutils", "selinux-policy", "selinux-policy-targeted"],
+      "deb": ["selinux-utils"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "no"
+    },
+    {
+      "name": "Sudo",
+      "rpm": ["sudo"],
+      "deb": ["sudo"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "no"
+    },
+    {
+      "name": "passwd",
+      "rpm": ["passwd"],
+      "deb": ["passwd"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "no"
+    },
+    {
+      "name": "shadow-utils",
+      "rpm": ["shadow-utils"],
+      "deb": ["passwd"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "no"
+    },
+    {
+      "name": "Systemd",
+      "rpm": ["systemd", "systemd-pam", "systemd-libs", "systemd-udev", "systemd-resolved", "systemd-rpm-macros"],
+      "deb": ["systemd"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "no"
+    },
+    {
+      "name": "D-Bus",
+      "rpm": ["dbus", "dbus-libs", "dbus-common", "dbus-broker", "dbus-daemon", "dbus-tools", "dbus-x11", "xdg-dbus-proxy"],
+      "deb": ["dbus"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "no"
+    },
+    {
+      "name": "Firewalld",
+      "rpm": ["firewalld", "firewalld-filesystem"],
+      "deb": ["firewalld"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "no"
+    },
+    {
+      "name": "iptables",
+      "rpm": ["iptables-libs", "iptables-nft"],
+      "deb": ["iptables"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "no"
+    },
+    {
+      "name": "nftables",
+      "rpm": ["nftables"],
+      "deb": ["nftables"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "no"
+    },
+    {
+      "name": "ipset",
+      "rpm": ["ipset", "ipset-libs"],
+      "deb": ["ipset"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "no"
+    },
+    {
+      "name": "Google Chrome",
+      "rpm": ["google-chrome-stable"],
+      "deb": ["google-chrome-stable"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "partial",
+      "comment": "Experiments in Canary, not mainline"
+    },
+    {
+      "name": "CA Certificates",
+      "rpm": ["ca-certificates"],
+      "deb": ["ca-certificates"],
+      "category": "Crypto Infrastructure",
+      "pqc_ready": "partial",
+      "comment": "Some roots exploring PQC signatures"
+    },
+    {
+      "name": "P11-kit",
+      "rpm": ["p11-kit", "p11-kit-trust", "p11-kit-server"],
+      "deb": ["p11-kit"],
+      "category": "Crypto Infrastructure",
+      "pqc_ready": "partial",
+      "comment": "PQC-ready with updated PKCS#11"
+    },
+    {
+      "name": "TPM2 TSS",
+      "rpm": ["tpm2-tss"],
+      "deb": ["libtss2-esys0"],
+      "category": "Crypto Infrastructure",
+      "pqc_ready": "no"
+    },
+    {
+      "name": "RPM Sign Libraries",
+      "rpm": ["rpm-sign-libs", "gpg-pubkey-b86b3716-61e69f29", "gpg-pubkey-3228467c-613798eb", "gpg-pubkey-478f8947-5ff329c5", "gpg-pubkey-7fac5991-4615767f", "gpg-pubkey-d38b4796-570c8cd3", "gpg-pubkey-be1229cf-5631588c", "gpg-pubkey-621e9f35-58adea78", "rpm-plugin-systemd-inhibit"],
+      "deb": ["rpm"],
+      "category": "Crypto Infrastructure",
+      "pqc_ready": "no"
+    },
+    {
+      "name": "Docker CE / Containerd",
+      "rpm": ["docker-ce", "containerd.io", "docker-ce-cli", "docker-ce-rootless-extras", "docker-compose-plugin", "docker-buildx-plugin"],
+      "deb": ["docker-ce", "containerd"],
+      "category": "Crypto Infrastructure",
+      "pqc_ready": "no"
+    },
+    {
+      "name": "Sendmail",
+      "rpm": ["sendmail", "sendmail-milter"],
+      "deb": ["sendmail"],
+      "category": "Crypto Consumer",
+      "pqc_ready": "partial",
+      "comment": "Dependent on system crypto libs"
+    },
+    {
+      "name": "BouncyCastle",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Implementer",
+      "pqc_ready": "partial",
+      "comment": "Java BC supports hybrid post-quantum (ex: NTRU, Kyber)",
+      "external": true
+    },
+    {
+      "name": "WolfSSL",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Implementer",
+      "pqc_ready": "partial",
+      "comment": "PQC NTRU support as of v5.0+",
+      "external": true
+    },
+    {
+      "name": "Botan",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Implementer",
+      "pqc_ready": "partial",
+      "comment": "Some PQC via hybrid code",
+      "external": true
+    },
+    {
+      "name": "Libressl",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Implementer",
+      "pqc_ready": "no",
+      "external": true
+    },
+    {
+      "name": "Zoom",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Consumer",
+      "pqc_ready": "no",
+      "external": true
+    },
+    {
+      "name": "Salesforce",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Consumer",
+      "pqc_ready": "no",
+      "external": true
+    },
+    {
+      "name": "SAP",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Consumer",
+      "pqc_ready": "no",
+      "external": true
+    },
+    {
+      "name": "Signal",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Consumer",
+      "pqc_ready": "partial",
+      "comment": "Testing PQC/MLS, not default",
+      "external": true
+    },
+    {
+      "name": "WhatsApp",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Consumer",
+      "pqc_ready": "no",
+      "external": true
+    },
+    {
+      "name": "Dropbox",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Consumer",
+      "pqc_ready": "no",
+      "external": true
+    },
+    {
+      "name": "Firefox",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Consumer",
+      "pqc_ready": "partial",
+      "comment": "Testing PQC hybrid in Nightly",
+      "external": true
+    },
+    {
+      "name": "Slack",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Consumer",
+      "pqc_ready": "no",
+      "external": true
+    },
+    {
+      "name": "Cloudflare",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Infrastructure",
+      "pqc_ready": "partial",
+      "comment": "Early PQC test endpoints",
+      "external": true
+    },
+    {
+      "name": "AWS KMS",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Infrastructure",
+      "pqc_ready": "partial",
+      "comment": "PQC hybrids for some services in pilot",
+      "external": true
+    },
+    {
+      "name": "Azure Key Vault",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Infrastructure",
+      "pqc_ready": "partial",
+      "external": true
+    },
+    {
+      "name": "Google Cloud KMS",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Infrastructure",
+      "pqc_ready": "partial",
+      "external": true
+    },
+    {
+      "name": "Fortinet",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Infrastructure",
+      "pqc_ready": "unknown",
+      "external": true
+    },
+    {
+      "name": "Hashicorp Vault",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Infrastructure",
+      "pqc_ready": "partial",
+      "comment": "Some PQC plugin integrations available",
+      "external": true
+    },
+    {
+      "name": "OpenSC",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Infrastructure",
+      "pqc_ready": "no",
+      "external": true
+    },
+    {
+      "name": "Let's Encrypt/Boulder",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Infrastructure",
+      "pqc_ready": "partial",
+      "comment": "PQC test CAs online",
+      "external": true
+    },
+    {
+      "name": "Yubikey/Smartcard",
+      "rpm": [],
+      "deb": [],
+      "category": "Crypto Infrastructure",
+      "pqc_ready": "partial",
+      "comment": "Some PQC/experimental",
+      "external": true
+    }
+  ]
+}
