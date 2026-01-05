@@ -1,0 +1,6 @@
+openpyxl
+requests
+pwntools
+python-dotenv
+loguru
+semgrep
