@@ -50,7 +50,9 @@ def scan_semgrep_cbom(semgrep_bin: Path, target_path: str, timestamp: int, rando
             capture_output=True,
             text=True,
             check=False,
-            timeout=3600
+            timeout=3600,
+            encoding="utf-8",     # <--- force UTF-8 decoding
+            errors="replace"     # <--- never crash on odd bytes
         )
     except subprocess.TimeoutExpired as e:
         raise TimeoutError("Semgrep scan timed out after 1 hour") from e

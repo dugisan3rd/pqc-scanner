@@ -4,3 +4,5 @@ pwntools
 python-dotenv
 loguru
 semgrep
+jmespath
+jsonpath-ng
