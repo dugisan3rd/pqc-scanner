@@ -1,0 +1,212 @@
+# ==============================================================================
+# PQC / CBOM Semgrep Patch v3.2
+# Adds (high ROI):
+#  1) IaC / K8s / Helm / Terraform / Docker scanning for crypto/TLS posture
+#  2) Cert pinning / trust override inventory (JS/TS + PHP)
+#  3) Weak RSA padding detection (JS/TS + PHP OpenSSL)
+# 
+# ==============================================================================
+
+paths:
+  include:
+    # IaC / deploy
+    - "**/*.tf"
+    - "**/*.tfvars"
+    - "**/*.tpl"
+    - "**/charts/**"
+    - "**/*.helm/**"
+    - "**/values.yaml"
+    - "**/values.yml"
+    - "**/*k8s*.yaml"
+    - "**/*k8s*.yml"
+    - "**/*.k8s.yaml"
+    - "**/*.k8s.yml"
+    - "**/kustomization.yaml"
+    - "**/kustomization.yml"
+    - "**/Dockerfile"
+    - "**/Dockerfile*"
+    - "**/*.dockerfile"
+    - "**/*.env"
+    - "**/*.yaml"
+    - "**/*.yml"
+    - "**/*.json"
+    - "**/*.conf"
+
+    # App code (for cert pinning + RSA padding rules)
+    - "**/*.js"
+    - "**/*.ts"
+    - "**/*.php"
+  exclude:
+    - "**/node_modules/**"
+    - "**/vendor/**"
+    - "**/dist/**"
+    - "**/build/**"
+    - "**/.git/**"
+    - "**/test/**"
+    - "**/tests/**"
+    - "**/__tests__/**"
+
+rules:
+  # =============================================================================
+  # 1) IaC / Config — crypto & TLS posture (env vars / settings)
+  # =============================================================================
+
+  - id: pqc-iac-insecure-tls-env-vars
+    patterns:
+      - pattern-either:
+          # Node: disables TLS verification
+          - pattern-regex: "(?i)\\bNODE_TLS_REJECT_UNAUTHORIZED\\s*=\\s*0\\b"
+          # generic “turn off ssl verify” patterns
+          - pattern-regex: "(?i)\\b(SSL|TLS)_VERIFY\\s*=\\s*(false|0)\\b"
+          - pattern-regex: "(?i)\\b(SSL|TLS)_INSECURE\\s*=\\s*(true|1)\\b"
+          - pattern-regex: "(?i)\\bREJECT_UNAUTHORIZED\\s*:\\s*false\\b"
+    message: "Security Finding: Insecure TLS setting detected in config/IaC (e.g., NODE_TLS_REJECT_UNAUTHORIZED=0 or verification disabled)."
+    languages: [generic, yaml, json]
+    severity: ERROR
+    metadata:
+      vulnerability: "TLS Verification Disabled (Config/IaC)"
+      pqc_risk: "High"
+      crypto_agility: "No"
+      algorithm_name: "TLS (verification disabled)"
+      algorithm_type: "TLS"
+      cryptographic_function: "Transport Security"
+      library: "Config/IaC"
+      purpose: "Deployment TLS posture"
+      recommended_mitigation: "Remove verification bypass. Configure CA trust properly and enforce TLS 1.2+ (prefer TLS 1.3)."
+
+  - id: pqc-iac-weak-tls-min-version
+    patterns:
+      - pattern-either:
+          - pattern-regex: "(?i)\\bminVersion\\s*:\\s*['\"]TLSv1(\\.1)?['\"]"
+          - pattern-regex: "(?i)\\bsecureProtocol\\s*:\\s*['\"]TLSv1(_1)?_method['\"]"
+          - pattern-regex: "(?i)\\bTLS_MIN_VERSION\\s*=\\s*TLSv1(\\.1)?\\b"
+          - pattern-regex: "(?i)\\bssl_protocols\\s+[^;]*(TLSv1\\b|TLSv1\\.1\\b)[^;]*;"
+          - pattern-regex: "(?i)\\bSSLProtocol\\b[^\\n]*(TLSv1\\b|TLSv1\\.1\\b)"
+    message: "Security Finding: Weak TLS minimum version allowed in config/IaC (TLSv1 / TLSv1.1)."
+    languages: [generic, yaml, json]
+    severity: ERROR
+    metadata:
+      vulnerability: "Weak TLS Version (Config/IaC)"
+      pqc_risk: "High"
+      crypto_agility: "No"
+      algorithm_name: "TLSv1/TLSv1.1"
+      algorithm_type: "TLS"
+      cryptographic_function: "Transport Security"
+      library: "Config/IaC"
+      purpose: "Deployment TLS posture"
+      recommended_mitigation: "Require TLS 1.2+ (prefer TLS 1.3). Remove TLSv1/TLSv1.1."
+
+  # =============================================================================
+  # 2) Cert pinning / trust override inventory
+  # =============================================================================
+
+  # --- JS/TS: certificate pinning / custom trust hooks ---
+  - id: pqc-js-cert-pinning-inventory
+    patterns:
+      - pattern-either:
+          - pattern: "checkServerIdentity(...)"
+          - pattern: "tls.checkServerIdentity(...)"
+          - pattern: "https.request(..., { ..., checkServerIdentity: ..., ... })"
+          - pattern: "new https.Agent({ ..., checkServerIdentity: ..., ... })"
+          - pattern: "new https.Agent({ ..., ca: ..., ... })"
+          - pattern: "new https.Agent({ ..., cert: ..., ... })"
+          - pattern: "new https.Agent({ ..., key: ..., ... })"
+          - pattern: "certificateFingerprint"
+          - pattern: "fingerprint256"
+    message: "CBOM Inventory (Crypto-Agility Planning): Cert pinning / custom TLS trust behavior detected (checkServerIdentity/ca/fingerprint). Review rotation and PQC transition impact."
+    languages: [javascript, typescript]
+    severity: INFO
+    metadata:
+      category: "Inventory"
+      pqc_risk: "Transition"
+      crypto_agility: "Depends"
+      algorithm_name: "TLS trust override / pinning"
+      algorithm_type: "TLS"
+      cryptographic_function: "Transport Security"
+      library: "https/tls"
+      purpose: "Certificate validation / pinning"
+      recommended_mitigation: "If pinning is needed, document rationale, implement safe rotation, and centralize trust policy."
+
+  # --- PHP: cURL / stream context CA overrides (inventory) ---
+  - id: pqc-php-custom-ca-inventory
+    patterns:
+      - pattern-either:
+          - pattern: "curl_setopt(..., CURLOPT_CAINFO, ...)"
+          - pattern: "curl_setopt(..., CURLOPT_CAPATH, ...)"
+          - pattern: |
+              stream_context_create([
+                "ssl" => [
+                  "cafile" => ...,
+                  ...
+                ],
+                ...
+              ])
+          - pattern: |
+              stream_context_create([
+                "ssl" => [
+                  "capath" => ...,
+                  ...
+                ],
+                ...
+              ])
+    message: "CBOM Inventory: Custom CA/trust store configuration detected (CURLOPT_CAINFO/CAPATH or stream context cafile/capath). Review lifecycle, rotation, and crypto agility."
+    languages: [php]
+    severity: INFO
+    metadata:
+      category: "Inventory"
+      pqc_risk: "Transition"
+      crypto_agility: "Depends"
+      algorithm_name: "TLS custom CA / trust override"
+      algorithm_type: "TLS"
+      cryptographic_function: "Transport Security"
+      library: "cURL / PHP Streams"
+      purpose: "TLS trust configuration"
+      recommended_mitigation: "Manage CA bundles securely; ensure rotation and avoid disabling verification."
+
+  # =============================================================================
+  # 3) Weak RSA padding detection (legacy / risky)
+  # =============================================================================
+
+  # --- Node: crypto.publicEncrypt/privateDecrypt padding flags ---
+  - id: pqc-js-rsa-weak-padding
+    patterns:
+      - pattern-either:
+          - pattern: "crypto.publicEncrypt({ ..., padding: crypto.constants.RSA_PKCS1_PADDING, ... }, ...)"
+          - pattern: "crypto.privateDecrypt({ ..., padding: crypto.constants.RSA_PKCS1_PADDING, ... }, ...)"
+          - pattern: "crypto.publicEncrypt({ ..., padding: crypto.constants.RSA_NO_PADDING, ... }, ...)"
+          - pattern: "crypto.privateDecrypt({ ..., padding: crypto.constants.RSA_NO_PADDING, ... }, ...)"
+    message: "Security Finding: RSA encryption/decryption uses weak/legacy padding (RSA_PKCS1_PADDING) or unsafe padding (RSA_NO_PADDING)."
+    languages: [javascript, typescript]
+    severity: ERROR
+    metadata:
+      vulnerability: "Weak/Unsafe RSA Padding"
+      pqc_risk: "High"
+      crypto_agility: "No"
+      algorithm_name: "RSA PKCS#1 v1.5 / NO_PADDING"
+      algorithm_type: "Asymmetric Crypto"
+      cryptographic_function: "Encrypt/Decrypt"
+      library: "node:crypto"
+      purpose: "Asymmetric Encryption"
+      recommended_mitigation: "Prefer RSA-OAEP (oaepHash SHA-256+) or redesign using hybrid AEAD. Plan PQC migration for asymmetric encryption use cases."
+
+  # --- PHP OpenSSL: encrypt/decrypt padding flags ---
+  - id: pqc-php-rsa-weak-padding
+    patterns:
+      - pattern-either:
+          - pattern: "openssl_public_encrypt(..., ..., OPENSSL_PKCS1_PADDING)"
+          - pattern: "openssl_private_decrypt(..., ..., OPENSSL_PKCS1_PADDING)"
+          - pattern: "openssl_public_encrypt(..., ..., OPENSSL_NO_PADDING)"
+          - pattern: "openssl_private_decrypt(..., ..., OPENSSL_NO_PADDING)"
+    message: "Security Finding: PHP OpenSSL RSA encrypt/decrypt uses weak/legacy padding (OPENSSL_PKCS1_PADDING) or unsafe padding (OPENSSL_NO_PADDING)."
+    languages: [php]
+    severity: ERROR
+    metadata:
+      vulnerability: "Weak/Unsafe RSA Padding (OpenSSL)"
+      pqc_risk: "High"
+      crypto_agility: "No"
+      algorithm_name: "RSA PKCS#1 v1.5 / NO_PADDING"
+      algorithm_type: "Asymmetric Crypto"
+      cryptographic_function: "Encrypt/Decrypt"
+      library: "PHP OpenSSL"
+      purpose: "Asymmetric Encryption"
+      recommended_mitigation: "Prefer OAEP-based constructions where applicable. For new designs, use hybrid AEAD and plan PQC migration."

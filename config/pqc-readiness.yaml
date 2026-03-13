@@ -1,1734 +1,2945 @@
 rules:
-- id: catalog.crypto.protocols
-  languages:
-  - generic
-  severity: INFO
-  message: Crypto/TLS catalog token detected (protocol matrix entry present). Use metadata.crypto_catalog for full mapping.
-  pattern-regex: (?i)\b(3DES|3DES_EDE_CBC|AES|AES\-128|AES\-192|AES\-256|AES\-CCM|AES\-CCMP|AES\-CTR|AES\-GCM|AES128|AES256|AES256_CTR|AES_128_CBC|AES_256_CBC|CHACHA20_POLY1305|Camellia|Camellia\-128|Camellia\-192|Camellia\-256|Certs/PSK|ChaCha20|ChaCha20\-Poly1305|ChaCha20\-poly1305|Curve25519|DES|DES3\-CBC|DES3\-KD|DES_CBC|DSA|ECDSA|ECDSA\-SHA256|ES256|Ed25519|EdDSA|ElGamal|HMAC|HMAC\-SHA1|HMAC\-SHA1/2|HMAC\-SHA256|HMAC/Poly1305|HMAC_MD5|HMAC_SHA1|HMAC_SHA1_96|HMAC_SHA256|HS256|MD5|PSK|Passphrase/PSK|Poly1305|RC4|RC4_128|RS256|RSA/ECDSA|RSAES\-PKCS1\-v1_5|RSASSA\-PKCS1\-v1_5|SAE|SHA\-1|SHA\-2|SHA\-256|SHA\-3|SHA\-384|SHA\-512|TLS_AES_128_GCM_SHA256|TLS_CHACHA20_POLY1305_SHA256|TLS_DHE_RSA_WITH_AES_128_GCM_SHA256|TLS_DH_RSA_WITH_AES_128_CBC_SHA|TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256|TLS_RSA_WITH_AES_256_GCM_SHA384|Twofish|Twofish\-256|X25519|ecdsa_secp256r1_sha256|md5WithRSAEncryption|rsa_pss_rsae_sha256|secp256k1)\b
-  metadata:
-    category: crypto-catalog
-    purpose: inventory
-    crypto_catalog:
-      TLS 1.2:
-        key_exchange:
-        - name: RSA
-          type: Asymmetric
-          example: TLS_RSA_WITH_AES_256_GCM_SHA384
-          key_bits: 2048–4096
-          ref: https://datatracker.ietf.org/doc/html/rfc5246
-        - name: DH
-          type: Asymmetric
-          example: TLS_DH_RSA_WITH_AES_128_CBC_SHA
-          key_bits: '2048'
-          ref: ''
-        - name: ECDHE
-          type: Asymmetric
-          example: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-          key_bits: '256'
-          ref: ''
-        - name: DHE
-          type: Asymmetric
-          example: TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
-          key_bits: '2048'
-          ref: ''
-        encryption:
-        - name: AES
-          type: Symmetric
-          examples:
-          - AES_128_CBC
-          - AES_256_CBC
-          key_bits: 128–256
-          ref: ''
-        - name: RC4
-          type: Symmetric
-          examples:
-          - RC4_128
-          key_bits: '128'
-          ref: ''
-        - name: 3DES
-          type: Symmetric
-          examples:
-          - 3DES_EDE_CBC
-          key_bits: '168'
-          ref: ''
-        - name: ChaCha20
-          type: Symmetric
-          examples:
-          - ChaCha20-Poly1305
-          key_bits: '256'
-          ref: ''
-        mac:
-        - name: MD5
-          type: Symmetric
-          examples:
-          - HMAC_MD5
-          key_bits: '128'
-          ref: ''
-        - name: HMAC-SHA1
-          type: Symmetric
-          examples:
-          - HMAC_SHA1
-          key_bits: '160'
-          ref: ''
-        - name: HMAC-SHA256
-          type: Symmetric
-          examples:
-          - HMAC_SHA256
-          key_bits: '256'
-          ref: ''
-        signatures:
-        - name: RSA
-          type: Asymmetric
-          example: RSA-SHA256
-          key_bits: 2048–4096
-          ref: https://datatracker.ietf.org/doc/html/rfc5246
-        - name: ECDSA
-          type: Asymmetric
-          example: ECDSA-SHA256
-          key_bits: '256'
-          ref: https://datatracker.ietf.org/doc/html/rfc5246
-        authentication:
-        - name: X.509 Certs
-          type: Asymmetric
-          example: Certificate field
-          key_bits: Varies
-          ref: https://datatracker.ietf.org/doc/html/rfc5280
-        cipher_suites:
-        - TLS_RSA_WITH_AES_256_GCM_SHA384
-        - TLS_DH_RSA_WITH_AES_128_CBC_SHA
-        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-        - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
-      TLS 1.3:
-        key_exchange:
-        - name: ECDHE
-          type: Asymmetric
-          curves:
-          - P-256
-          - P-384
-          - P-521
-          example: TLS_AES_128_GCM_SHA256
-          key_bits: '256'
-          ref: ''
-        encryption:
-        - name: AES-GCM
-          type: Symmetric
-          examples:
-          - TLS_AES_128_GCM_SHA256
-          key_bits: 128–256
-          ref: https://datatracker.ietf.org/doc/html/rfc8446#section-6.3
-        - name: ChaCha20-Poly1305
-          type: Symmetric
-          examples:
-          - TLS_CHACHA20_POLY1305_SHA256
-          key_bits: '256'
-          ref: https://datatracker.ietf.org/doc/html/rfc8439
-        mac:
-        - name: Poly1305 (with ChaCha20)
-          type: Symmetric
-          examples:
-          - CHACHA20_POLY1305
-          key_bits: '256'
-          ref: ''
-        signatures:
-        - name: RSA-PSS
-          type: Asymmetric
-          hashes:
-          - SHA-256
-          - SHA-384
-          - SHA-512
-          example: rsa_pss_rsae_sha256
-          key_bits: 2048–4096
-          ref: ''
-        - name: ECDSA
-          type: Asymmetric
-          hashes:
-          - SHA-256
-          - SHA-384
-          - SHA-512
-          example: ecdsa_secp256r1_sha256
-          key_bits: '256'
-          ref: ''
-        authentication:
-        - name: X.509 Certs
-          type: Asymmetric
-          example: subjectPublicKeyInfo
-          key_bits: Varies
-          ref: ''
-        cipher_suites:
-        - TLS_AES_128_GCM_SHA256
-        - TLS_CHACHA20_POLY1305_SHA256
-      IPSec:
-        key_exchange:
-        - name: DH/ECDH
-          type: Asymmetric
-          example: 'ESP/AH headers: Encryption Algorithm, Integrity Algorithm, DH Group'
-          key_bits: '2048'
-          ref: ''
-        encryption:
-        - name: AES
-          type: Symmetric
-          example: 'ESP/AH headers: Encryption Algorithm, Integrity Algorithm, DH Group'
-          key_bits: 128–256
-          ref: ''
-        - name: 3DES
-          type: Symmetric
-          example: 'ESP/AH headers: Encryption Algorithm, Integrity Algorithm, DH Group'
-          key_bits: '168'
-          ref: https://datatracker.ietf.org/doc/html/rfc6071
-        integrity:
-        - name: HMAC-SHA1/2
-          type: Symmetric
-          example: 'ESP/AH headers: Encryption Algorithm, Integrity Algorithm, DH Group'
-          key_bits: Depends on hash
-          ref: ''
-        authentication:
-        - name: RSA certs
-          type: Asymmetric
-          example: 'ESP/AH headers: Encryption Algorithm, Integrity Algorithm, DH Group'
-          key_bits: 2048–4096
-          ref: ''
-        - name: PSK
-          type: Symmetric
-          example: 'ESP/AH headers: Encryption Algorithm, Integrity Algorithm, DH Group'
-          key_bits: 128–256
-          ref: ''
-      SSH:
-        key_exchange:
-        - name: DH/ECDH
-          type: Asymmetric
-          example: kex, cipher, mac, hostkey
-          key_bits: '2048'
-          ref: ''
-        encryption:
-        - name: AES
-          type: Symmetric
-          examples:
-          - AES-128
-          - AES-256
-          key_bits: 128–256
-          ref: https://datatracker.ietf.org/doc/html/rfc6668
-        - name: ChaCha20
-          type: Symmetric
-          examples:
-          - ChaCha20-poly1305
-          key_bits: '256'
-          ref: https://datatracker.ietf.org/doc/html/rfc8439
-        integrity:
-        - name: HMAC
-          type: Symmetric
-          hashes:
-          - SHA-256
-          - SHA-512
-          key_bits: Depends on hash
-          ref: https://datatracker.ietf.org/doc/html/rfc6668
-        signatures:
-        - name: RSA
-          type: Asymmetric
-          key_bits: 2048–4096
-          ref: ''
-        - name: ECDSA
-          type: Asymmetric
-          hashes:
-          - SHA-256
-          - SHA-384
-          - SHA-512
-          key_bits: '256'
-          ref: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-5.pdf
-        - name: Ed25519
-          type: Asymmetric
-          hash: SHA-512
-          key_bits: '256'
-          ref: ''
-        authentication:
-        - name: Password
-          type: Symmetric
-          key_bits: Varies / Protocol-defined
-          ref: thesis.pdf
-        - name: Pubkey
-          type: Asymmetric
-          key_bits: Varies / Protocol-defined
-          ref: https://datatracker.ietf.org/doc/html/rfc4252
-      OpenPGP:
-        key_exchange:
-        - name: ElGamal
-          type: Asymmetric
-          key_bits: '2048'
-          ref: https://datatracker.ietf.org/doc/html/rfc4880
-        - name: DH
-          type: Asymmetric
-          key_bits: '2048'
-          ref: ''
-        encryption:
-        - name: AES
-          type: Symmetric
-          examples:
-          - AES-128
-          - AES-192
-          - AES-256
-          key_bits: 128–256
-          ref: ''
-        - name: Camellia
-          type: Symmetric
-          examples:
-          - Camellia-128
-          - Camellia-192
-          - Camellia-256
-          key_bits: 128–256
-          ref: ''
-        - name: Twofish
-          type: Symmetric
-          examples:
-          - Twofish-256
-          key_bits: '256'
-          ref: ''
-        integrity:
-        - name: HMAC
-          type: Symmetric
-          hashes:
-          - SHA-2
-          - SHA-3
-          ref: ''
-        signatures:
-        - name: RSA
-          type: Asymmetric
-          key_bits: 2048–4096
-          ref: ''
-        - name: DSA
-          type: Asymmetric
-          hashes:
-          - SHA-256
-          - SHA-384
-          - SHA-512
-          key_bits: '2048'
-          ref: ''
-        - name: ECDSA
-          type: Asymmetric
-          hash: SHA-1
-          key_bits: '256'
-          ref: ''
-        authentication:
-        - name: Sig verification
-          type: Asymmetric
-          ref: https://datatracker.ietf.org/doc/html/rfc4880
-      S/MIME:
-        encryption:
-        - name: AES
-          type: Symmetric
-          examples:
-          - AES-128 GCM
-          - AES-256 GCM
-          - AES-128 CBC
-          key_bits: 128,256
-          ref: https://datatracker.ietf.org/doc/html/rfc8551#section-3.3
-        - name: 3DES
-          type: Symmetric
-          key_bits: '168'
-          ref: ''
-        integrity:
-        - name: SHA2/3 (usage)
-          type: Symmetric
-          key_bits: Depends on hash
-          ref: ''
-        signatures:
-        - name: RSA
-          type: Asymmetric
-          hashes:
-          - SHA-256
-          - SHA-1
-          key_bits: 2048–4096
-          ref: ''
-        - name: ECDSA
-          type: Asymmetric
-          curve: P-256
-          hash: SHA-256
-          key_bits: '256'
-          ref: ''
-        authentication:
-        - name: X.509 certs
-          type: Asymmetric
-          key_bits: Varies / Protocol-defined
-          ref: ''
-      Signal:
-        key_exchange:
-        - name: 'X3DH: Curve25519'
-          type: Asymmetric
-          examples:
-          - X3DH
-          - Curve25519
-          ref: https://medium.com/@janelle.wg/demystifying-the-signal-protocol-for-end-to-end-encryption-c93250e6043e
-        encryption:
-        - name: AES-CTR
-          type: Symmetric
-          example: AES256_CTR
-          key_bits: 128–256
-          ref: ''
-        integrity:
-        - name: HMAC-SHA256
-          type: Symmetric
-          key_bits: Depends on hash
-          ref: ''
-        authentication:
-        - name: Identity keys Curve25519
-          type: Mixed
-          key_bits: '256'
-          ref: https://medium.com/@janelle.wg/demystifying-the-signal-protocol-for-end-to-end-encryption-c93250e6043e
-      Kerberos:
-        encryption:
-        - name: AES
-          type: Symmetric
-          examples:
-          - AES256
-          - AES128
-          key_bits: 128–256
-          ref: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/security-policy-settings/network-security-configure-encryption-types-allowed-for-kerberos
-        - name: DES
-          type: Symmetric
-          examples:
-          - DES_CBC
-          key_bits: '56'
-          ref: RFC 4120
-        - name: 3DES
-          type: Symmetric
-          examples:
-          - DES3-KD
-          - DES3-CBC
-          key_bits: '192'
-          ref: RFC 4120
-        integrity:
-        - name: HMAC_MD5
-          type: Symmetric
-          key_bits: '128'
-          ref: RFC 4120
-        - name: HMAC-SHA1
-          type: Symmetric
-          examples:
-          - HMAC_SHA1_96
-          key_bits: '96'
-          ref: RFC 4120
-        authentication:
-        - name: Tickets/password-derived keys; PKINIT certs (optional)
-          type: Mixed
-          ref: https://datatracker.ietf.org/doc/html/rfc8636
-      WireGuard:
-        key_exchange:
-        - name: Curve25519
-          type: Asymmetric
-          key_bits: '256'
-          ref: https://datatracker.ietf.org/doc/html/rfc7748
-        encryption:
-        - name: ChaCha20
-          type: Symmetric
-          integrity: Poly1305
-          key_bits: '256'
-          ref: 'WireGuard: Next Generation Kernel Network Tunnel'
-        integrity:
-        - name: Poly1305
-          type: Symmetric
-          key_bits: '256'
-          ref: ''
-        authentication:
-        - name: Static public keys
-          type: Asymmetric
-          key_bits: '256'
-          ref: https://datatracker.ietf.org/doc/html/rfc7748
-      Zigbee:
-        encryption:
-        - name: AES-CCM
-          type: Symmetric
-          integrity: CBC-MAC
-          key_bits: 128–256
-          ref: 'ZigBee Security: Basics (Part 2) – Kudelski Security Research'
-        integrity:
-        - name: AES-CCM MIC
-          type: Symmetric
-          key_bits: 128–256
-          ref: 'AN1233: Zigbee Security'
-        authentication:
-        - name: Network/Link keys
-          type: Symmetric
-          mode: AES-CTR
-          ref: ''
-      WPA2 / WPA3:
-        key_exchange:
-        - name: SAE
-          type: Asymmetric-style
-          key_bits: '256'
-          ref: https://www.wi-fi.org/system/files/WPA3%20Specification%20v3.4.pdf
-        - name: PSK
-          type: Symmetric
-          hash: HMAC-SHA1
-          key_bits: 128–256
-          ref: https://standards.ieee.org/ieee/802.11i/3127
-        encryption:
-        - name: AES-CCMP
-          type: Symmetric
-          key_bits: 128–256
-          ref: https://datatracker.ietf.org/doc/html/rfc4309
-        integrity:
-        - name: HMAC-SHA256
-          type: Symmetric
-          key_bits: Depends on hash
-          ref: IEEE 802.11w; IEEE 802.11-2016/2020
-        authentication:
-        - name: Passphrase/PSK
-          type: Symmetric
-          ref: ''
-        - name: SAE creds (A-PAKE)
-          type: Asymmetric
-          ref: https://www.wi-fi.org/system/files/WPA3%20Specification%20v3.4.pdf
-      DNSSEC:
-        signatures:
-        - name: RSA
-          type: Asymmetric
-          key_bits: 2048–4096
-          ref: ''
-        - name: ECDSA
-          type: Asymmetric
-          curves:
-          - P-256
-          - P-384
-          hashes:
-          - SHA-256
-          - SHA-384
-          key_bits: '256'
-          ref: https://datatracker.ietf.org/doc/html/rfc6605
-        - name: EdDSA
-          type: Asymmetric
-          hash: SHAKE-256
-          key_bits: '256'
-          ref: https://datatracker.ietf.org/doc/html/rfc8080#section-6.2
-        authentication:
-        - name: DNSKEY/RRSIG validation
-          type: Asymmetric
-          ref: https://datatracker.ietf.org/doc/html/rfc4034
-      QUIC (TLS 1.3):
-        key_exchange:
-        - name: ECDHE
-          type: Mixed
-          example: inherits TLS naming (e.g., TLS_AES_128_GCM_SHA256)
-          ref: ''
-        encryption:
-        - name: AES-GCM
-          type: Symmetric
-          ref: https://datatracker.ietf.org/doc/html/rfc8446
-        - name: ChaCha20-Poly1305
-          type: Symmetric
-          ref: https://datatracker.ietf.org/doc/html/rfc8446
-        integrity:
-        - name: AEAD tags
-          type: Symmetric
-          ref: ''
-        signatures:
-        - name: RSA
-          type: Mixed
-          ref: ''
-        - name: ECDSA
-          type: Mixed
-          ref: ''
-        authentication:
-        - name: Certs
-          type: Mixed
-          ref: ''
-        research_ref: '[2405.09264] A Quantum of QUIC: Dissecting Cryptography with Post-Quantum Insights'
-      Bitcoin:
-        signatures:
-        - name: ECDSA
-          type: Asymmetric
-          curve: secp256k1
-          key_bits: '256'
-          ref: https://datatracker.ietf.org/doc/html/rfc6090
-        authentication:
-        - name: Ownership via signs
-          type: Asymmetric
-          curve: secp256k1
-          ref: ''
-      Tor:
-        key_exchange:
-        - name: DH
-          type: Asymmetric
-          curve: Curve25519
-          key_bits: '2048'
-          ref: https://datatracker.ietf.org/doc/html/rfc3526
-        - name: RSA
-          type: Asymmetric
-          examples:
-          - RSAES-PKCS1-v1_5
-          - RSASSA-PKCS1-v1_5
-          key_bits: 2048–4096
-          ref: https://datatracker.ietf.org/doc/html/rfc8017
-        encryption:
-        - name: AES
-          type: Symmetric
-          mode: AES-128 CTR
-          ref: https://datatracker.ietf.org/doc/html/rfc3268
-        integrity:
-        - name: SHA1 digest / TLS MACs (usage)
-          type: Symmetric
-          hash: HMAC-SHA1
-          ref: https://datatracker.ietf.org/doc/html/rfc5246
-        authentication:
-        - name: Onion handshake keys
-          type: Mixed
-          ref: ''
-      iMessage:
-        key_exchange:
-        - name: Curve25519
-          type: Mixed
-          example: X25519
-          key_bits: '256'
-          ref: https://datatracker.ietf.org/doc/html/rfc7748
-        encryption:
-        - name: AES
-          type: Symmetric
-          mode: AES-GCM
-          ref: ''
-        integrity:
-        - name: HMAC
-          type: Symmetric
-          hash: HMAC-SHA256
-          ref: https://datatracker.ietf.org/doc/html/rfc2104
-        authentication:
-        - name: Apple ID cert chain
-          type: Mixed
-          algs:
-          - RSA
-          - ECDSA
-          ref: ''
-      OAuth / OIDC:
-        integrity:
-        - name: HMAC (JWT HS256)
-          type: Symmetric
-          ref: https://datatracker.ietf.org/doc/html/rfc7519#section-7.1
-        signatures:
-        - name: RSA
-          type: Mixed
-          algs:
-          - RS256
-          - RS384
-          - RS512
-          ref: https://datatracker.ietf.org/doc/html/rfc7518
-        - name: ECDSA
-          type: Mixed
-          algs:
-          - ES256
-          - ES384
-          - ES512
-          ref: https://datatracker.ietf.org/doc/html/rfc7518
-        - name: EdDSA
-          type: Mixed
-          algs:
-          - Ed25519
-          - Ed448
-          ref: https://datatracker.ietf.org/doc/html/rfc8037
-        - name: HMAC
-          type: Symmetric
-          algs:
-          - HS256
-          - HS384
-          - HS512
-          ref: https://datatracker.ietf.org/doc/html/rfc7518
-        authentication:
-        - name: 'Tokens: client secret or JWK'
-          type: Mixed
-          ref: https://datatracker.ietf.org/doc/html/rfc6749
-      FIDO2 / WebAuthn:
-        integrity:
-        - name: Hash (usage)
-          type: Asymmetric
-          ref: https://developers.yubico.com/python-fido2/API_Documentation/autoapi/fido2/webauthn/index.html
-        signatures:
-        - name: ECDSA
-          type: Asymmetric
-          alg: ES256
-          ref: https://datatracker.ietf.org/doc/html/draft-ietf-cose-webauthn-algorithms-01
-        - name: EdDSA
-          type: Asymmetric
-          ref: https://developers.yubico.com/WebAuthn/Concepts/Using_WebAuthn_for_Signing.html
-        authentication:
-        - name: Public-key assertions
-          type: Asymmetric
-          ref: https://en.wikipedia.org/wiki/WebAuthn
-      MACsec:
-        encryption:
-        - name: AES-GCM
-          type: Symmetric
-          key_bits: 128–256
-          ref: https://ieeexplore.ieee.org/abstract/document/9044731
-        integrity:
-        - name: AES-GCM tag
-          type: Symmetric
-          key_bits: 128–256
-          ref: https://ieeexplore.ieee.org/abstract/document/9044731
-        authentication:
-        - name: PSK / 802.1X creds
-          type: Symmetric/Mixed
-          ref: https://info.support.huawei.com/info-finder/encyclopedia/en/MACsec.html
-      OpenVPN:
-        key_exchange:
-        - name: DH/ECDH
-          type: Asymmetric
-          key_bits: '2048'
-          ref: https://datatracker.ietf.org/doc/html/rfc2409
-        - name: RSA
-          type: Asymmetric
-          example: easy-rsa
-          key_bits: '1024'
-          ref: https://openvpn.net/community-docs/setting-up-your-own-certificate-authority--ca--and-generating-certificates-and-keys-for-an-openvpn-server-and-multiple-clients.html
-        encryption:
-        - name: AES
-          type: Symmetric
-          modes:
-          - CBC
-          - GCM
-          ref: NIST SP 800-38; RFC2104
-        - name: Camellia
-          type: Symmetric
-          ref: RFC6367
-        integrity:
-        - name: HMAC
-          type: Symmetric
-          hashes:
-          - SHA-1
-          - SHA-256
-          - SHA-512
-          ref: RFC3174; RFC 6234
-        signatures:
-        - name: MD5
-          type: Asymmetric
-          example: md5WithRSAEncryption
-          ref: https://openvpn.net/connect-docs/md5-signature-algorithm-support.html
-        authentication:
-        - name: Static key or TLS certs or HMAC using SHA1
-          type: Mixed
-          ref: https://openvpn.net/community-resources/reference-manual-for-openvpn-2-4/
-      DTLS:
-        key_exchange:
-        - name: (EC)DHE/RSA
-          type: Mixed
-          ref: https://www.redhat.com/en/blog/understanding-dtls-all-zero-clienthellorandom-vulnerability
-        encryption:
-        - name: ChaCha20
-          type: Symmetric
-          integrity: Poly1305
-          ref: RFC 9147
-        - name: AES
-          type: Symmetric
-          modes:
-          - AES-GCM
-          - AES-CCM
-          ref: RFC 9147
-        integrity:
-        - name: HMAC/Poly1305
-          type: Symmetric
-          ref: RFC 9147
-        signatures:
-        - name: RSA/ECDSA
-          type: Mixed
-          ref: https://www.redhat.com/en/blog/understanding-dtls-all-zero-clienthellorandom-vulnerability
-        authentication:
-        - name: Certs/PSK
-          type: Mixed
-          ref: https://www.redhat.com/en/blog/understanding-dtls-all-zero-clienthellorandom-vulnerability
-- id: inv.crypto.keywords.any
-  languages:
-  - generic
-  message: 'Inventory: crypto-related keywords detected (broad). Use to locate configs/docs/code references.'
-  severity: INFO
-  pattern-regex: (?i)\b(crypto|cipher|ciphersuite|ciphersuites|key exchange|keyexchange|kem|signature scheme|x509|certificate|csr|pkcs|jwt|jwe|jws|tls|ssl|ssh|ipsec|ike|saml|oauth|oidc|keystore|truststore|kms|hsm)\b
-  metadata:
-    category: inventory
-    tier: E
-    confidence: low
-- id: inv.crypto.libs.any
-  languages:
-  - generic
-  message: 'Inventory: crypto library keyword detected (OpenSSL/BoringSSL/libsodium/mbedTLS/wolfSSL/Botan/Crypto++/NaCl/WebCrypto).'
-  severity: INFO
-  pattern-regex: (?i)\b(openssl|boringssl|libressl|libsodium|sodium|mbedtls|wolfssl|botan|crypto\+\+|cryptopp|nacl|tweetnacl|webcrypto)\b
-  metadata:
-    category: inventory
-    tier: B
-    confidence: low
-- id: inv.dh.dsa.legacy.multilang
-  languages:
-  - python
-  - java
-  - go
-  - javascript
-  - typescript
-  - c
-  - cpp
-  message: 'Inventory/Legacy: DH/DSA detected. Often remediation needed; also impacts migration planning.'
-  severity: WARNING
-  pattern-either:
-  - pattern-regex: (?i)\bDSA\b|\bDiffieHellman\b|\bKeyAgreement\.getInstance\("DH"\)
-  - pattern-regex: (?i)\bKeyPairGenerator\.getInstance\("DSA"\)
-  - pattern-regex: (?i)\bcrypto/dsa\b|\bcrypto/dh\b
-  - pattern-regex: (?i)\bDH_generate_key\b|\bDSA_generate_parameters_ex\b|\bNID_dsa\b
-  metadata:
-    category: inventory
-    tier: B
-    confidence: medium
-- id: inv.dotnet.crypto
-  languages:
-  - csharp
-  message: 'Inventory: .NET crypto usage detected.'
-  severity: INFO
-  pattern-regex: (?i)\bSystem\.Security\.Cryptography\b|\bSslStream\b|\bX509Certificate2\b
-  metadata:
-    category: inventory
-    tier: B
-    confidence: low
-- id: inv.dotnet.crypto.api
-  languages:
-  - csharp
-  message: 'Inventory: .NET crypto API usage detected (System.Security.Cryptography). Track algorithms and key sizes; plan
-    PQC migration.'
-  severity: INFO
-  pattern-either:
-  - pattern: RSA.Create(...)
-  - pattern: ECDsa.Create(...)
-  - pattern: ECDiffieHellman.Create(...)
-  - pattern: Aes.Create(...)
-  - pattern: HMACSHA256(...)
-  - pattern: HMACSHA1(...)
-  - pattern: MD5.Create(...)
-  - pattern: SHA1.Create(...)
-  - pattern-regex: (?i)\bSystem\.Security\.Cryptography\b
-  metadata:
-    category: inventory
-    tier: B
-    confidence: medium
-- id: inv.dotnet.sslstream
-  languages:
-  - csharp
-  message: 'Inventory: .NET TLS usage detected (SslStream/HttpClientHandler).'
-  severity: INFO
-  pattern-either:
-  - pattern-regex: (?i)\bSslStream\b
-  - pattern-regex: (?i)\bHttpClientHandler\b
-  - pattern-regex: (?i)\bSslProtocols\b
-  - pattern-regex: (?i)\bServerCertificateCustomValidationCallback\b
-  metadata:
-    category: inventory
-    tier: B
-    confidence: low
-- id: inv.ecc.api.multilang
-  languages:
-  - python
-  - java
-  - go
-  - javascript
-  - typescript
-  - c
-  - cpp
-  - csharp
-  message: 'Inventory: ECC usage detected (ECDSA/ECDH/Ed25519/X25519). Track curves/groups used.'
-  severity: INFO
-  pattern-either:
-  - pattern-regex: (?i)\bECDSA\b|\bECDH\b|\bsecp256r1\b|\bprime256v1\b|\bsecp384r1\b|\bX25519\b|\bEd25519\b
-  - pattern-regex: (?i)\bKeyAgreement\.getInstance\("ECDH"\)
-  - pattern-regex: (?i)\bSignature\.getInstance\(".*ECDSA.*"\)
-  - pattern-regex: (?i)\bcrypto/ecdh\b|\bcrypto/elliptic\b
-  - pattern-regex: (?i)\bEVP_PKEY_EC\b|\bEVP_PKEY_X25519\b|\bEVP_PKEY_ED25519\b
-  metadata:
-    category: inventory
-    tier: B
-    confidence: medium
-- id: inv.go.crypto.pkgs
-  languages:
-  - go
-  message: 'Inventory: Go crypto packages detected.'
-  severity: INFO
-  pattern-regex: (?i)\bcrypto/(tls|x509|rsa|ecdsa|ed25519|elliptic|ecdh|sha256|sha512|hmac)\b
-  metadata:
-    category: inventory
-    tier: B
-    confidence: low
-- id: inv.ipsec.ike.algorithms
-  languages:
-  - generic
-  message: 'Inventory: IPsec/IKE config detected. Review DH groups, PRFs, encryption/hashing choices.'
-  severity: INFO
-  pattern-regex: (?i)\b(ike=|esp=|phase1alg=|phase2alg=|dhgroup|modp\d+|ecp\d+|curve25519|aesgcm|sha2|sha1)\b
-  metadata:
-    category: inventory
-    tier: B
-    confidence: low
-- id: inv.java.jca
-  languages:
-  - java
-  message: 'Inventory: Java crypto APIs detected (JCA/JCE).'
-  severity: INFO
-  pattern-regex: (?i)\b(javax\.crypto|java\.security|KeyPairGenerator|MessageDigest|Signature|Cipher|KeyAgreement)\b
-  metadata:
-    category: inventory
-    tier: B
-    confidence: low
-- id: inv.java.security.properties
-  languages:
-  - generic
-  message: 'Inventory: Java security properties detected. Review provider order, disabledAlgorithms, namedGroups.'
-  severity: INFO
-  pattern-regex: (?i)\b(jdk\.tls\.disabledAlgorithms|jdk\.certpath\.disabledAlgorithms|security\.provider\.\d+|crypto\.policy|jdk\.tls\.namedGroups)\b
-  metadata:
-    category: inventory
-    tier: B
-    confidence: medium
-- id: inv.java.sslcontext
-  languages:
-  - java
-  message: 'Inventory: SSLContext usage detected. Ensure TLS 1.2/1.3 posture and avoid hardcoding weak protocols.'
-  severity: INFO
-  pattern-either:
-  - pattern-regex: (?i)\bSSLContext\.getInstance\("TLS"\)
-  - pattern-regex: (?i)\bSSLContext\.getInstance\("TLSv1"\)
-  - pattern-regex: (?i)\bSSLContext\.getInstance\("TLSv1\.1"\)
-  - pattern-regex: (?i)\bSSLContext\.getInstance\("TLSv1\.2"\)
-  - pattern-regex: (?i)\bSSLContext\.getInstance\("TLSv1\.3"\)
-  metadata:
-    category: inventory
-    tier: B
-    confidence: medium
-- id: inv.k8s.ingress.tls.annotations
-  languages:
-  - generic
-  message: 'Inventory: Kubernetes Ingress/annotations TLS policy knobs detected.'
-  severity: INFO
-  pattern-regex: (?i)\b(nginx\.ingress\.kubernetes\.io/ssl-protocols|nginx\.ingress\.kubernetes\.io/ssl-ciphers|nginx\.ingress\.kubernetes\.io/force-ssl-redirect|alb\.ingress\.kubernetes\.io/ssl-policy|kubernetes\.io/ingress\.class)\b
-  metadata:
-    category: inventory
-    tier: B
-    confidence: low
-- id: inv.node.crypto.module
-  languages:
-  - javascript
-  - typescript
-  message: 'Inventory: Node.js crypto module usage detected.'
-  severity: INFO
-  pattern-either:
-  - pattern-regex: (?i)\brequire\(["']crypto["']\)
-  - pattern-regex: (?i)\bfrom\s+["']crypto["']
-  - pattern-regex: (?i)\bimport\s+\*\s+as\s+crypto\s+from\s+["']crypto["']
-  - pattern-regex: (?i)\bimport\s+crypto\s+from\s+["']crypto["']
-  metadata:
-    category: inventory
-    tier: B
-    confidence: medium
-- id: inv.node.tls.options
-  languages:
-  - javascript
-  - typescript
-  message: 'Inventory: Node.js TLS options detected (minVersion/maxVersion/ciphers/ecdhCurve).'
-  severity: INFO
-  pattern-either:
-  - pattern-regex: (?i)\b(minVersion|maxVersion|secureProtocol|ciphers|ecdhCurve|honorCipherOrder)\b
-  - pattern-regex: (?i)\bhttps\.createServer\(
-  - pattern-regex: (?i)\btls\.createServer\(
-  metadata:
-    category: inventory
-    tier: B
-    confidence: low
-- id: inv.openvpn.crypto
-  languages:
-  - generic
-  message: 'Inventory: OpenVPN crypto directives detected. Review tls-cipher/data-ciphers and cert settings.'
-  severity: INFO
-  pattern-regex: (?i)\b(tls-cipher|data-ciphers|cipher\s+AES|cipher\s+BF|auth\s+SHA|tls-crypt|tls-auth)\b
-  metadata:
-    category: inventory
-    tier: B
-    confidence: low
-- id: inv.php.openssl
+- id: pqc-php-weak-hash-direct
+  patterns:
+  - pattern-either:
+    - pattern: md5(...)
+    - pattern: sha1(...)
+  message: 'PQC CBOM Finding (Crypto-Agility=No): Weak hash (MD5/SHA1) detected via direct function call.'
   languages:
   - php
-  message: 'Inventory: PHP OpenSSL API usage detected.'
-  severity: INFO
-  pattern-regex: (?i)\bopenssl_(encrypt|decrypt|sign|verify|public_encrypt|private_decrypt|seal|open|get_publickey|get_privatekey)\b
+  severity: ERROR
   metadata:
-    category: inventory
-    tier: B
-    confidence: medium
-- id: inv.python.crypto.libs
+    vulnerability: Weak Hash (MD5/SHA1)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: MD5/SHA1
+    algorithm_type: Hashing
+    cryptographic_function: Hashing
+    library: PHP Core
+    purpose: Hashing
+    recommended_mitigation: Use SHA-256/SHA-512 (or stronger). Do not use MD5/SHA1 for security decisions.
+    cbom:
+      cryptographic_function: Hashing
+      algorithm_used: MD5/SHA1
+      algorithm_category: Hashing
+      library_module: PHP Core
+      key_length: variable
+      purpose_usage: Hashing
+- id: pqc-php-weak-hash-hash-api
+  patterns:
+  - pattern-either:
+    - pattern: hash("md5", ...)
+    - pattern: hash('md5', ...)
+    - pattern: hash("sha1", ...)
+    - pattern: hash('sha1', ...)
+    - pattern: hash_hmac("md5", ...)
+    - pattern: hash_hmac('md5', ...)
+    - pattern: hash_hmac("sha1", ...)
+    - pattern: hash_hmac('sha1', ...)
+  message: 'PQC CBOM Finding (Crypto-Agility=No): Weak algorithm selected via hash/hash_hmac (MD5/SHA1).'
   languages:
-  - python
-  message: 'Inventory: Python crypto library usage detected (cryptography/PyCryptodome/pyOpenSSL).'
-  severity: INFO
-  pattern-regex: (?i)\b(cryptography\.hazmat|Crypto\.Cipher|Crypto\.PublicKey|OpenSSL\.crypto)\b
-  metadata:
-    category: inventory
-    tier: B
-    confidence: medium
-- id: inv.rsa.api.multilang
-  languages:
-  - python
-  - java
-  - go
-  - javascript
-  - typescript
-  - c
-  - cpp
-  - csharp
   - php
-  - ruby
-  message: 'Inventory: RSA usage detected. Track purpose (TLS, signing, encryption), padding, and key sizes.'
-  severity: INFO
-  pattern-either:
-  - pattern-regex: (?i)\bRSA\.generate\(
-  - pattern-regex: (?i)\brsa\.generate_private_key\(
-  - pattern-regex: (?i)\bKeyPairGenerator\.getInstance\("RSA"\)
-  - pattern-regex: (?i)\bSignature\.getInstance\(".*RSA.*"\)
-  - pattern-regex: (?i)\bCipher\.getInstance\(".*RSA.*"\)
-  - pattern-regex: (?i)\bcrypto/rsa\b|\brsa\.GenerateKey\(
-  - pattern-regex: (?i)\bcrypto\.generateKeyPair\(\s*["']rsa["']
-  - pattern-regex: (?i)\bEVP_PKEY_RSA\b|\bNID_rsaEncryption\b|\bRSA_generate_key_ex\b
+  severity: ERROR
   metadata:
-    category: inventory
-    tier: B
-    confidence: medium
-- id: inv.ruby.openssl
+    vulnerability: Weak Hash/MAC Selection (hash/hash_hmac)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: MD5/SHA1
+    algorithm_type: Hashing / MAC
+    cryptographic_function: Hashing / Message Authentication
+    library: PHP Core
+    purpose: Hashing/MAC
+    recommended_mitigation: Use HMAC-SHA-256 or HMAC-SHA-512; avoid MD5/SHA1.
+    cbom:
+      cryptographic_function: Hashing / Message Authentication
+      algorithm_used: MD5/SHA1
+      algorithm_category: Hashing / MAC
+      library_module: PHP Core
+      key_length: variable
+      purpose_usage: Hashing/MAC
+- id: pqc-php-weak-pbkdf2-sha1
+  patterns:
+  - pattern-either:
+    - pattern: hash_pbkdf2("sha1", ...)
+    - pattern: hash_pbkdf2('sha1', ...)
+    - pattern: openssl_pbkdf2(..., ..., ..., ..., "sha1")
+    - pattern: openssl_pbkdf2(..., ..., ..., ..., 'sha1')
+  message: 'PQC CBOM Finding (Crypto-Agility=No): PBKDF2 configured with SHA1 detected.'
   languages:
-  - ruby
-  message: 'Inventory: Ruby OpenSSL usage detected.'
-  severity: INFO
-  pattern-regex: (?i)\bOpenSSL::(PKey|Cipher|Digest|X509|SSL)\b
+  - php
+  severity: ERROR
   metadata:
-    category: inventory
-    tier: B
-    confidence: medium
-- id: inv.ssh.config.algorithms
+    vulnerability: Weak KDF Configuration (PBKDF2-SHA1)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: PBKDF2-SHA1
+    algorithm_type: KDF
+    cryptographic_function: Key Derivation
+    library: PHP Core / OpenSSL
+    purpose: Password/Key Derivation
+    recommended_mitigation: Use Argon2id or scrypt; if PBKDF2 is required, use PBKDF2-HMAC-SHA256 with strong iteration count.
+    cbom:
+      cryptographic_function: Key Derivation
+      algorithm_used: PBKDF2-SHA1
+      algorithm_category: KDF
+      library_module: PHP Core / OpenSSL
+      key_length: variable
+      purpose_usage: Password/Key Derivation
+- id: pqc-php-legacy-mcrypt
+  patterns:
+  - pattern-either:
+    - pattern: mcrypt_encrypt(...)
+    - pattern: mcrypt_decrypt(...)
+    - pattern: mcrypt_module_open(...)
+    - pattern: mcrypt_generic(...)
+  message: 'PQC CBOM Finding (Crypto-Agility=No): Deprecated mcrypt usage detected.'
   languages:
-  - generic
-  message: 'Inventory: SSH algorithm controls detected. Review KexAlgorithms/HostKeyAlgorithms/Ciphers/MACs.'
-  severity: INFO
-  pattern-regex: (?im)^\s*(KexAlgorithms|HostKeyAlgorithms|PubkeyAcceptedAlgorithms|CASignatureAlgorithms|Ciphers|MACs)\s+
+  - php
+  severity: ERROR
   metadata:
-    category: inventory
-    tier: B
-    confidence: medium
-- id: inv.terraform.tls.policy
+    vulnerability: Legacy Mcrypt Library
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: mcrypt
+    algorithm_type: Encryption/Decryption
+    cryptographic_function: Encryption/Decryption
+    library: PHP mcrypt extension (deprecated)
+    purpose: Encryption
+    recommended_mitigation: Replace with libsodium or modern OpenSSL (AES-GCM/ChaCha20-Poly1305).
+    cbom:
+      cryptographic_function: Encryption/Decryption
+      algorithm_used: mcrypt
+      algorithm_category: Encryption/Decryption
+      library_module: PHP mcrypt extension (deprecated)
+      key_length: variable
+      purpose_usage: Encryption
+- id: pqc-php-openssl-weak-cipher
+  patterns:
+  - pattern-either:
+    - pattern: openssl_encrypt(..., "des-cbc", ...)
+    - pattern: openssl_encrypt(..., "des-ecb", ...)
+    - pattern: openssl_encrypt(..., "des-ede3-cbc", ...)
+    - pattern: openssl_encrypt(..., "rc2-cbc", ...)
+    - pattern: openssl_encrypt(..., "rc4", ...)
+    - pattern: openssl_encrypt(..., "bf-cbc", ...)
+    - pattern: openssl_encrypt(..., "aes-128-ecb", ...)
+    - pattern: openssl_encrypt(..., "aes-256-ecb", ...)
+    - pattern: openssl_decrypt(..., "des-cbc", ...)
+    - pattern: openssl_decrypt(..., "des-ecb", ...)
+    - pattern: openssl_decrypt(..., "des-ede3-cbc", ...)
+    - pattern: openssl_decrypt(..., "rc2-cbc", ...)
+    - pattern: openssl_decrypt(..., "rc4", ...)
+    - pattern: openssl_decrypt(..., "bf-cbc", ...)
+    - pattern: openssl_decrypt(..., "aes-128-ecb", ...)
+    - pattern: openssl_decrypt(..., "aes-256-ecb", ...)
+  message: 'PQC CBOM Finding (Crypto-Agility=No): OpenSSL weak/unsafe cipher or mode detected (DES/3DES/RC2/RC4/Blowfish/ECB).
+    Hardcoded cipher.'
   languages:
-  - generic
-  message: 'Inventory: Terraform/IaC TLS policy references detected (ELB/ALB/CloudFront/Azure/GCP).'
-  severity: INFO
-  pattern-regex: (?i)\b(ssl_policy|min_protocol_version|viewer_certificate|cloudfront_default_certificate|tls_policy|https_only|security_policy|sslProfile)\b
+  - php
+  severity: ERROR
   metadata:
-    category: inventory
-    tier: B
-    confidence: low
-- id: inv.tls.config.any
+    vulnerability: Hardcoded Weak Cipher (OpenSSL)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: DES/3DES/RC2/RC4/Blowfish/ECB
+    algorithm_type: Encryption/Decryption
+    cryptographic_function: Encryption/Decryption
+    library: PHP OpenSSL
+    purpose: Encryption/Decryption
+    recommended_mitigation: 'Use AEAD: AES-GCM or ChaCha20-Poly1305. Avoid ECB and legacy ciphers.'
+    cbom:
+      cryptographic_function: Encryption/Decryption
+      algorithm_used: DES/3DES/RC2/RC4/Blowfish/ECB
+      algorithm_category: Encryption/Decryption
+      library_module: PHP OpenSSL
+      key_length: variable
+      purpose_usage: Encryption/Decryption
+- id: pqc-php-openssl-aes-cbc-non-aead
+  patterns:
+  - pattern-either:
+    - pattern: openssl_encrypt(..., "aes-128-cbc", ...)
+    - pattern: openssl_encrypt(..., "aes-192-cbc", ...)
+    - pattern: openssl_encrypt(..., "aes-256-cbc", ...)
+    - pattern: openssl_decrypt(..., "aes-128-cbc", ...)
+    - pattern: openssl_decrypt(..., "aes-192-cbc", ...)
+    - pattern: openssl_decrypt(..., "aes-256-cbc", ...)
+  message: 'CBOM Finding (Crypto-Agility=Low): AES-CBC detected. CBC is not AEAD; ensure integrity (MAC/Encrypt-then-MAC)
+    or migrate to AES-GCM/ChaCha20-Poly1305.'
   languages:
-  - generic
-  message: 'Inventory: TLS config knobs detected (cipher suites/groups/protocols). Review for posture and PQC/hybrid readiness.'
-  severity: INFO
-  pattern-regex: (?i)\b(ssl_protocols|ssl_ciphers|SSLCipherSuite|SSLProtocol|ssl-default-bind-ciphers|ssl-default-server-ciphers|ciphersuites|CipherString|MinProtocol|MaxProtocol|Groups|ssl_ecdh_curve|jdk\.tls\.namedGroups)\b
+  - php
+  severity: WARNING
   metadata:
-    category: inventory
-    tier: B
-    confidence: low
-- id: inv.tls.hybrid.pqc.groups.any
+    vulnerability: Non-AEAD Symmetric Mode (AES-CBC)
+    pqc_risk: Medium
+    crypto_agility: Low
+    algorithm_name: AES-CBC
+    algorithm_type: Encryption/Decryption
+    cryptographic_function: Encryption/Decryption
+    library: PHP OpenSSL
+    purpose: Encryption/Decryption
+    recommended_mitigation: Prefer AEAD (AES-GCM/ChaCha20-Poly1305). If CBC required, add strong integrity protection (HMAC)
+      correctly.
+    cbom:
+      cryptographic_function: Encryption/Decryption
+      algorithm_used: AES-CBC
+      algorithm_category: Encryption/Decryption
+      library_module: PHP OpenSSL
+      key_length: variable
+      purpose_usage: Encryption/Decryption
+- id: pqc-php-crypt-blowfish
+  patterns:
+  - pattern-either:
+    - pattern: crypt(...)
+    - pattern: CRYPT_BLOWFISH
+  message: 'PQC CBOM Finding (Crypto-Agility=Low): crypt()/CRYPT_BLOWFISH detected (bcrypt/Blowfish). Plan migration strategy.'
   languages:
-  - generic
-  message: 'PQC/Hybrid signal: TLS groups/curves reference suggests hybrid/PQC experimentation. Validate stack support.'
-  severity: INFO
-  pattern-regex: (?i)\b(ssl_ecdh_curve|Groups|namedGroups|jdk\.tls\.namedGroups)\b.*\b(kyber|mlkem|p256_kyber|x25519_kyber|hybrid)\b|\b(kyber|mlkem)\b.*\b(group|namedgroup|curve)\b
+  - php
+  severity: WARNING
   metadata:
-    category: pqc
-    tier: B
-    confidence: low
-- id: inv.tls.webserver.proxy.config
+    vulnerability: Password Hashing (crypt()/Blowfish)
+    pqc_risk: Medium
+    crypto_agility: Low
+    algorithm_name: bcrypt (Blowfish)
+    algorithm_type: Hashing
+    cryptographic_function: Password Hashing
+    library: PHP Core
+    purpose: Password Hashing
+    recommended_mitigation: Prefer Argon2id via password_hash; implement rehash-on-login migration.
+    cbom:
+      cryptographic_function: Password Hashing
+      algorithm_used: bcrypt (Blowfish)
+      algorithm_category: Hashing
+      library_module: PHP Core
+      key_length: variable
+      purpose_usage: Password Hashing
+- id: pqc-php-password-hash-bcrypt
+  patterns:
+  - pattern: password_hash(..., PASSWORD_BCRYPT, ...)
+  message: 'PQC CBOM Finding (Crypto-Agility=No): password_hash with PASSWORD_BCRYPT forces bcrypt (hardcoded).'
   languages:
-  - generic
-  message: 'Inventory: Web server/proxy TLS settings detected (nginx/apache/haproxy/envoy/traefik/caddy).'
-  severity: INFO
-  pattern-regex: (?i)\b(ssl_protocols|ssl_ciphers|ssl_ecdh_curve|ssl_prefer_server_ciphers|SSLCipherSuite|SSLProtocol|SSLHonorCipherOrder|ssl-default-bind-ciphers|ssl-default-server-ciphers|bind\s+.*ssl|tls_(minimum|maximum)_protocol_version|cipher_suites|ecdh_curves|alpn_protocols|transport_socket|downstream_tls_context|minVersion|maxVersion|ciphers|ecdhCurve)\b
+  - php
+  severity: ERROR
   metadata:
-    category: inventory
-    tier: B
-    confidence: low
-- id: inv.webcrypto.subtle
+    vulnerability: Hardcoded Password Hashing (Bcrypt)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: Bcrypt (Blowfish)
+    algorithm_type: Hashing
+    cryptographic_function: Password Hashing
+    library: PHP Core
+    purpose: Password Hashing
+    recommended_mitigation: Prefer PASSWORD_ARGON2ID when available + rehash strategy.
+    cbom:
+      cryptographic_function: Password Hashing
+      algorithm_used: Bcrypt (Blowfish)
+      algorithm_category: Hashing
+      library_module: PHP Core
+      key_length: variable
+      purpose_usage: Password Hashing
+- id: pqc-php-password-hash-default
+  patterns:
+  - pattern: password_hash(..., PASSWORD_DEFAULT, ...)
+  message: 'PQC CBOM Finding (Crypto-Agility=Low): PASSWORD_DEFAULT is version-dependent; review migration readiness.'
+  languages:
+  - php
+  severity: WARNING
+  metadata:
+    vulnerability: Implicit Hashing Algorithm (PASSWORD_DEFAULT)
+    pqc_risk: Medium
+    crypto_agility: Low
+    algorithm_name: PASSWORD_DEFAULT (version-dependent)
+    algorithm_type: Hashing
+    cryptographic_function: Password Hashing
+    library: PHP Core
+    purpose: Password Hashing
+    recommended_mitigation: Pin to Argon2id where available; ensure password_needs_rehash() is used.
+    cbom:
+      cryptographic_function: Password Hashing
+      algorithm_used: PASSWORD_DEFAULT (version-dependent)
+      algorithm_category: Hashing
+      library_module: PHP Core
+      key_length: variable
+      purpose_usage: Password Hashing
+- id: pqc-php-password-hash-argon2id
+  patterns:
+  - pattern-either:
+    - pattern: password_hash(..., PASSWORD_ARGON2ID, ...)
+    - pattern: PASSWORD_ARGON2ID
+  message: 'CBOM Inventory (Good Practice): Argon2id password hashing detected.'
+  languages:
+  - php
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Low
+    crypto_agility: Medium
+    algorithm_name: Argon2id
+    algorithm_type: Hashing
+    cryptographic_function: Password Hashing
+    library: PHP Core
+    purpose: Password Hashing
+    cbom:
+      cryptographic_function: Password Hashing
+      algorithm_used: Argon2id
+      algorithm_category: Hashing
+      library_module: PHP Core
+      key_length: variable
+      purpose_usage: Password Hashing
+- id: pqc-php-libsodium-inventory-aead
+  patterns:
+  - pattern-either:
+    - pattern: sodium_crypto_aead_chacha20poly1305_ietf_encrypt(...)
+    - pattern: sodium_crypto_aead_chacha20poly1305_ietf_decrypt(...)
+    - pattern: sodium_crypto_aead_aes256gcm_encrypt(...)
+    - pattern: sodium_crypto_aead_aes256gcm_decrypt(...)
+    - pattern: sodium_crypto_aead_xchacha20poly1305_ietf_encrypt(...)
+    - pattern: sodium_crypto_aead_xchacha20poly1305_ietf_decrypt(...)
+  message: 'CBOM Inventory (Good Practice): libsodium AEAD usage detected (ChaCha20-Poly1305/AES-GCM).'
+  languages:
+  - php
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Low
+    crypto_agility: High
+    algorithm_name: AEAD (ChaCha20-Poly1305 / AES-GCM)
+    algorithm_type: Encryption/Decryption
+    cryptographic_function: Authenticated Encryption
+    library: libsodium
+    purpose: Encryption/Decryption
+    cbom:
+      cryptographic_function: Authenticated Encryption
+      algorithm_used: AEAD (ChaCha20-Poly1305 / AES-GCM)
+      algorithm_category: Encryption/Decryption
+      library_module: libsodium
+      key_length: variable
+      purpose_usage: Encryption/Decryption
+- id: pqc-php-libsodium-inventory-sign-kx
+  patterns:
+  - pattern-either:
+    - pattern: sodium_crypto_sign_detached(...)
+    - pattern: sodium_crypto_sign_verify_detached(...)
+    - pattern: sodium_crypto_kx_client_session_keys(...)
+    - pattern: sodium_crypto_kx_server_session_keys(...)
+  message: 'CBOM Inventory: libsodium signing or key exchange usage detected (Ed25519 / key exchange). Review PQC transition
+    impact (asymmetric footprint).'
+  languages:
+  - php
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: Ed25519 / KX
+    algorithm_type: Asymmetric Crypto / Key Exchange
+    cryptographic_function: Sign/Verify / Key Agreement
+    library: libsodium
+    purpose: Sign/Verify / Key Exchange
+    cbom:
+      cryptographic_function: Sign/Verify / Key Agreement
+      algorithm_used: Ed25519 / KX
+      algorithm_category: Asymmetric Crypto / Key Exchange
+      library_module: libsodium
+      key_length: variable
+      purpose_usage: Sign/Verify / Key Exchange
+- id: pqc-php-libsodium-inventory-pwhash
+  patterns:
+  - pattern-either:
+    - pattern: sodium_crypto_pwhash(...)
+    - pattern: sodium_crypto_pwhash_str(...)
+    - pattern: sodium_crypto_pwhash_str_verify(...)
+  message: 'CBOM Inventory (Good Practice): libsodium password hashing (Argon2) usage detected.'
+  languages:
+  - php
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Low
+    crypto_agility: High
+    algorithm_name: Argon2 (libsodium pwhash)
+    algorithm_type: Hashing
+    cryptographic_function: Password Hashing
+    library: libsodium
+    purpose: Password Hashing
+    cbom:
+      cryptographic_function: Password Hashing
+      algorithm_used: Argon2 (libsodium pwhash)
+      algorithm_category: Hashing
+      library_module: libsodium
+      key_length: variable
+      purpose_usage: Password Hashing
+- id: pqc-php-insecure-rng
+  patterns:
+  - pattern-either:
+    - pattern: rand(...)
+    - pattern: mt_rand(...)
+    - pattern: uniqid(...)
+  message: 'Security Finding: Insecure RNG primitive detected (rand/mt_rand/uniqid). If used for secrets/tokens/keys, it is
+    not cryptographically secure.'
+  languages:
+  - php
+  severity: WARNING
+  metadata:
+    vulnerability: Insecure RNG
+    pqc_risk: Medium
+    crypto_agility: 'No'
+    algorithm_name: rand/mt_rand/uniqid
+    algorithm_type: Randomness
+    cryptographic_function: Random Number Generation
+    library: PHP Core
+    purpose: Token/ID generation
+    recommended_mitigation: Use random_bytes() / random_int() for security-sensitive tokens.
+    cbom:
+      cryptographic_function: Random Number Generation
+      algorithm_used: rand/mt_rand/uniqid
+      algorithm_category: Randomness
+      library_module: PHP Core
+      key_length: variable
+      purpose_usage: Token/ID generation
+- id: pqc-php-good-rng-inventory
+  patterns:
+  - pattern-either:
+    - pattern: random_bytes(...)
+    - pattern: random_int(...)
+  message: 'CBOM Inventory (Good Practice): CSPRNG usage detected (random_bytes/random_int).'
+  languages:
+  - php
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Low
+    crypto_agility: High
+    algorithm_name: CSPRNG
+    algorithm_type: Randomness
+    cryptographic_function: Random Number Generation
+    library: PHP Core
+    purpose: Token/Key material
+    cbom:
+      cryptographic_function: Random Number Generation
+      algorithm_used: CSPRNG
+      algorithm_category: Randomness
+      library_module: PHP Core
+      key_length: variable
+      purpose_usage: Token/Key material
+- id: pqc-php-tls-disable-verify-curl
+  patterns:
+  - pattern-either:
+    - pattern: curl_setopt(..., CURLOPT_SSL_VERIFYPEER, false)
+    - pattern: curl_setopt(..., CURLOPT_SSL_VERIFYHOST, 0)
+    - pattern: curl_setopt(..., CURLOPT_SSL_VERIFYHOST, false)
+  message: 'Security Finding: TLS certificate verification disabled in cURL (MITM risk).'
+  languages:
+  - php
+  severity: ERROR
+  metadata:
+    vulnerability: TLS Verification Disabled (cURL)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: TLS (verification disabled)
+    algorithm_type: TLS
+    cryptographic_function: Transport Security
+    library: cURL
+    purpose: HTTPS/TLS
+    recommended_mitigation: Enable certificate verification; configure CA bundle; do not disable VERIFYHOST/VERIFYPEER.
+    cbom:
+      cryptographic_function: Transport Security
+      algorithm_used: TLS (verification disabled)
+      algorithm_category: TLS
+      library_module: cURL
+      key_length: variable
+      purpose_usage: HTTPS/TLS
+- id: pqc-php-stream-verify-peer-false
+  patterns:
+  - pattern-either:
+    - pattern: "stream_context_create([\n  \"ssl\" => [\n    \"verify_peer\" => false,\n    ...\n  ],\n  ...\n])\n"
+    - pattern: "stream_context_create([\n  \"ssl\" => [\n    \"verify_peer_name\" => false,\n    ...\n  ],\n  ...\n])\n"
+    - pattern: "stream_context_create([\n  \"ssl\" => [\n    \"allow_self_signed\" => true,\n    ...\n  ],\n  ...\n])\n"
+  message: 'Security Finding: TLS verification weakened in PHP stream context (verify_peer/verify_peer_name disabled or allow_self_signed
+    enabled).'
+  languages:
+  - php
+  severity: ERROR
+  metadata:
+    vulnerability: TLS Verification Weakened (Stream Context)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: TLS (verification weakened)
+    algorithm_type: TLS
+    cryptographic_function: Transport Security
+    library: PHP Streams
+    purpose: HTTPS/TLS
+    recommended_mitigation: Enable verification and configure CA trust; avoid allow_self_signed in production.
+    cbom:
+      cryptographic_function: Transport Security
+      algorithm_used: TLS (verification weakened)
+      algorithm_category: TLS
+      library_module: PHP Streams
+      key_length: variable
+      purpose_usage: HTTPS/TLS
+- id: pqc-php-inventory-openssl-asym
+  patterns:
+  - pattern-either:
+    - pattern: openssl_sign(...)
+    - pattern: openssl_verify(...)
+    - pattern: openssl_public_encrypt(...)
+    - pattern: openssl_private_encrypt(...)
+    - pattern: openssl_public_decrypt(...)
+    - pattern: openssl_private_decrypt(...)
+    - pattern: openssl_pkey_new(...)
+    - pattern: openssl_pkey_get_public(...)
+    - pattern: openssl_pkey_get_private(...)
+  message: 'CBOM Inventory (PQC Planning): OpenSSL asymmetric crypto API usage detected (RSA/ECDSA/ECDH depends on key type).'
+  languages:
+  - php
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: Asymmetric (key-type dependent)
+    algorithm_type: Asymmetric Crypto
+    cryptographic_function: Sign/Verify or Encrypt/Decrypt
+    library: PHP OpenSSL
+    purpose: Asymmetric Crypto
+    recommended_mitigation: Inventory key types and protocols; plan PQC/hybrid transition where relevant.
+    cbom:
+      cryptographic_function: Sign/Verify or Encrypt/Decrypt
+      algorithm_used: Asymmetric (key-type dependent)
+      algorithm_category: Asymmetric Crypto
+      library_module: PHP OpenSSL
+      key_length: variable
+      purpose_usage: Asymmetric Crypto
+- id: pqc-php-openssl-sign-weak-digest
+  patterns:
+  - pattern-either:
+    - pattern: openssl_sign(..., ..., ..., OPENSSL_ALGO_SHA1)
+    - pattern: openssl_sign(..., ..., ..., OPENSSL_ALGO_MD5)
+  message: 'PQC CBOM Finding (Crypto-Agility=No): openssl_sign uses weak digest (SHA1/MD5).'
+  languages:
+  - php
+  severity: ERROR
+  metadata:
+    vulnerability: Weak Digest in Signature (OpenSSL)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: SHA1/MD5
+    algorithm_type: Signature Digest
+    cryptographic_function: Digital Signature
+    library: PHP OpenSSL
+    purpose: Sign/Verify
+    recommended_mitigation: Use SHA-256+ digests; review signature scheme and migration plan.
+    cbom:
+      cryptographic_function: Digital Signature
+      algorithm_used: SHA1/MD5
+      algorithm_category: Signature Digest
+      library_module: PHP OpenSSL
+      key_length: variable
+      purpose_usage: Sign/Verify
+- id: pqc-php-openssl-rsa-weak-keysize
+  patterns:
+  - pattern-either:
+    - pattern: "openssl_pkey_new([\n  ...,\n  \"private_key_bits\" => 1024,\n  ...\n])\n"
+    - pattern: "openssl_pkey_new([\n  ...,\n  \"private_key_bits\" => \"1024\",\n  ...\n])\n"
+  message: 'Security Finding: RSA key generation with weak modulus size (1024-bit) detected.'
+  languages:
+  - php
+  severity: ERROR
+  metadata:
+    vulnerability: Weak RSA Key Size
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: RSA-1024
+    algorithm_type: Asymmetric Crypto
+    cryptographic_function: Key Generation
+    library: PHP OpenSSL
+    purpose: Asymmetric Key Generation
+    recommended_mitigation: Use RSA 2048/3072+ (or modern curves). Plan PQC migration for long-term.
+    cbom:
+      cryptographic_function: Key Generation
+      algorithm_used: RSA-1024
+      algorithm_category: Asymmetric Crypto
+      library_module: PHP OpenSSL
+      key_length: variable
+      purpose_usage: Asymmetric Key Generation
+- id: pqc-php-jwt-firebase-encode
+  patterns:
+  - pattern-either:
+    - pattern: \Firebase\JWT\JWT::encode(...)
+    - pattern: JWT::encode(...)
+  message: 'CBOM Inventory (PQC Planning): PHP JWT encode detected. Review signing algorithm (HS*/RS*/ES*/EdDSA) and crypto-agility.'
+  languages:
+  - php
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: JWT signing (algorithm-dependent)
+    algorithm_type: Token Signature
+    cryptographic_function: Digital Signature / MAC
+    library: firebase/php-jwt (likely)
+    purpose: Authentication/Authorization
+    recommended_mitigation: Inventory JWT algorithms used (RS256/ES256/etc). Implement rotation and policy-driven algorithm
+      selection.
+    cbom:
+      cryptographic_function: Digital Signature / MAC
+      algorithm_used: JWT signing (algorithm-dependent)
+      algorithm_category: Token Signature
+      library_module: firebase/php-jwt (likely)
+      key_length: variable
+      purpose_usage: Authentication/Authorization
+- id: pqc-php-jwt-firebase-decode
+  patterns:
+  - pattern-either:
+    - pattern: \Firebase\JWT\JWT::decode(...)
+    - pattern: JWT::decode(...)
+  message: 'CBOM Inventory: PHP JWT decode detected. Review verification options (accepted algorithms, key selection) to prevent
+    algorithm confusion.'
+  languages:
+  - php
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: JWT verification (algorithm-dependent)
+    algorithm_type: Token Verification
+    cryptographic_function: Verify
+    library: firebase/php-jwt (likely)
+    purpose: Authentication/Authorization
+    recommended_mitigation: Ensure accepted algorithms are constrained and validated; keep crypto policy centralized.
+    cbom:
+      cryptographic_function: Verify
+      algorithm_used: JWT verification (algorithm-dependent)
+      algorithm_category: Token Verification
+      library_module: firebase/php-jwt (likely)
+      key_length: variable
+      purpose_usage: Authentication/Authorization
+- id: pqc-php-hardcoded-pem-private-key
+  patterns:
+  - pattern-regex: '-----BEGIN (RSA )?PRIVATE KEY-----'
+  message: 'Security Finding: Hardcoded PEM private key material detected in source code.'
+  languages:
+  - php
+  severity: ERROR
+  metadata:
+    vulnerability: Hardcoded Private Key
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: PEM Private Key
+    algorithm_type: Key Material
+    cryptographic_function: Key Management
+    library: N/A
+    purpose: Key Storage
+    recommended_mitigation: Remove embedded keys from source. Store in secure keystore/secret manager/HSM with rotation.
+    cbom:
+      cryptographic_function: Key Management
+      algorithm_used: PEM Private Key
+      algorithm_category: Key Material
+      library_module: N/A
+      key_length: variable
+      purpose_usage: Key Storage
+- id: pqc-php-hardcoded-pem-certificate
+  patterns:
+  - pattern-regex: '-----BEGIN CERTIFICATE-----'
+  message: 'CBOM Inventory/Security Finding: Embedded certificate detected in source code. Review if intentional (pinning)
+    and manage lifecycle.'
+  languages:
+  - php
+  severity: WARNING
+  metadata:
+    vulnerability: Embedded Certificate
+    pqc_risk: Medium
+    crypto_agility: Low
+    algorithm_name: X.509 Certificate
+    algorithm_type: Certificate Material
+    cryptographic_function: Certificate Management
+    library: N/A
+    purpose: Trust/PIN/Transport
+    recommended_mitigation: If pinning, manage rotation and expiry. Prefer platform trust store unless justified.
+    cbom:
+      cryptographic_function: Certificate Management
+      algorithm_used: X.509 Certificate
+      algorithm_category: Certificate Material
+      library_module: N/A
+      key_length: variable
+      purpose_usage: Trust/PIN/Transport
+- id: pqc-php-not-encryption-base64
+  patterns:
+  - pattern-either:
+    - pattern: base64_encode(...)
+    - pattern: base64_decode(...)
+  message: 'CBOM Note: base64_encode/base64_decode detected. Base64 is encoding, not encryption. Review if misused to protect
+    sensitive data.'
+  languages:
+  - php
+  severity: INFO
+  metadata:
+    category: Misuse Signal
+    pqc_risk: Low
+    crypto_agility: N/A
+    algorithm_name: Base64 (encoding)
+    algorithm_type: Encoding
+    cryptographic_function: Encoding
+    library: PHP Core
+    purpose: Data transformation
+    recommended_mitigation: If confidentiality is required, use proper encryption (AEAD).
+    cbom:
+      cryptographic_function: Encoding
+      algorithm_used: Base64 (encoding)
+      algorithm_category: Encoding
+      library_module: PHP Core
+      key_length: variable
+      purpose_usage: Data transformation
+- id: pqc-php-not-encryption-rot13
+  patterns:
+  - pattern: str_rot13(...)
+  message: 'Security Finding: str_rot13 detected. ROT13 is not encryption. Review for sensitive data handling.'
+  languages:
+  - php
+  severity: WARNING
+  metadata:
+    vulnerability: Weak/Non-Crypto Obfuscation (ROT13)
+    pqc_risk: Medium
+    crypto_agility: N/A
+    algorithm_name: ROT13
+    algorithm_type: Obfuscation
+    cryptographic_function: Obfuscation
+    library: PHP Core
+    purpose: Data hiding
+    recommended_mitigation: Replace with proper cryptography if confidentiality/integrity is required.
+    cbom:
+      cryptographic_function: Obfuscation
+      algorithm_used: ROT13
+      algorithm_category: Obfuscation
+      library_module: PHP Core
+      key_length: variable
+      purpose_usage: Data hiding
+- id: pqc-js-weak-hash-node
+  patterns:
+  - pattern-either:
+    - pattern: crypto.createHash('md5')
+    - pattern: crypto.createHash("md5")
+    - pattern: crypto.createHash('sha1')
+    - pattern: crypto.createHash("sha1")
+  message: 'PQC CBOM Finding (Crypto-Agility=No): [Node.js] Weak hash algorithm usage detected (MD5/SHA1).'
   languages:
   - javascript
   - typescript
-  message: 'Inventory: WebCrypto usage detected (crypto.subtle). Track algorithms used.'
-  severity: INFO
-  pattern-either:
-  - pattern-regex: (?i)\bcrypto\.subtle\b
-  - pattern-regex: (?i)\bwindow\.crypto\.subtle\b
+  severity: ERROR
   metadata:
-    category: inventory
-    tier: B
-    confidence: medium
-- id: pqc.algorithms.keyword.any
-  languages:
-  - generic
-  message: 'PQC: PQC algorithm keyword detected. Verify it’s actual code/config use (not just docs).'
-  severity: INFO
-  pattern-regex: (?i)\b(kyber|ml-?kem|dilithium|ml-?dsa|falcon|sphincs\+?|spx|classic\s*mceliece|mceliece|hqc|bike|frodo(kem)?|ntru|sntrup|rainbow)\b
-  metadata:
-    category: pqc
-    tier: A
-    confidence: low
-- id: pqc.apache.opensslconfcmd.curves
-  languages:
-  - generic
-  message: 'PQC: Apache SSLOpenSSLConfCmd Curves/Groups found (ECDHE groups). ECDHE is Shor-vulnerable; plan for hybrid/PQC
-    when available.'
-  severity: INFO
-  pattern-regex: (?im)^\s*SSLOpenSSLConfCmd\s+(Curves|Groups)\s+(.+)$
-  paths:
-    include:
-    - '**/httpd.conf'
-    - '**/*.conf'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: medium
-    stack: apache
-    signals:
-    - ecdh_groups
-    pqc_risk: high
-- id: pqc.apache.sslciphersuite
-  languages:
-  - generic
-  message: 'PQC: Apache SSLCipherSuite directive found. Inventory RSA/ECDSA/DH usage and remove legacy suites.'
-  severity: INFO
-  pattern-regex: (?im)^\s*SSLCipherSuite\s+(.+)$
-  paths:
-    include:
-    - '**/httpd.conf'
-    - '**/*.conf'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: medium
-    stack: apache
-    signals:
-    - tls12_ciphers
-- id: pqc.apache.sslprotocol
-  languages:
-  - generic
-  message: 'PQC: Apache SSLProtocol directive found. Ensure TLSv1.2+ and inventory crypto posture.'
-  severity: INFO
-  pattern-regex: (?im)^\s*SSLProtocol\s+(.+)$
-  paths:
-    include:
-    - '**/httpd.conf'
-    - '**/*.conf'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: medium
-    stack: apache
-    signals:
-    - tls_protocols
-- id: pqc.bouncycastle.java
-  languages:
-  - java
-  message: 'PQC: BouncyCastle PQC usage/import detected.'
-  severity: INFO
+    vulnerability: Weak Hash (MD5/SHA1)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: MD5/SHA1
+    algorithm_type: Hashing
+    cryptographic_function: Hashing
+    library: node:crypto
+    purpose: Hashing
+    recommended_mitigation: Use SHA-256/SHA-512 or stronger; avoid MD5/SHA1 for security.
+    cbom:
+      cryptographic_function: Hashing
+      algorithm_used: MD5/SHA1
+      algorithm_category: Hashing
+      library_module: node:crypto
+      key_length: variable
+      purpose_usage: Hashing
+- id: pqc-js-weak-hmac-node
   patterns:
   - pattern-either:
-    - pattern-regex: import\s+org\.bouncycastle\.pqc\..*;
-    - pattern-regex: org\.bouncycastle\.pqc\..*
-    - pattern-regex: BouncyCastlePQCProvider
-  metadata:
-    category: pqc
-    tier: A
-    confidence: medium
-- id: pqc.crypto.tokens.ciphersuites
-  languages:
-  - generic
-  message: 'PQC: Detected explicit cipher-suite / crypto token strings (IANA/OpenSSL/Java style). Verify runtime negotiation
-    and classify PQC risk.'
-  severity: INFO
-  pattern-regex: (?im)\bTLS_(?:RSA|DHE|ECDHE|DH|ECDH)_[A-Z0-9_]+\b|\bTLS_(?:AES|CHACHA20)_\d+_[A-Z0-9_]+\b|\b(?:ECDHE|DHE|RSA|ECDSA|ED25519|X25519|SECP256R1|P-256|P-384|P-521)\b
-  paths:
-    include:
-    - '**/*.conf'
-    - '**/*.cnf'
-    - '**/*.yml'
-    - '**/*.yaml'
-    - '**/*.properties'
-    - '**/*.json'
-    - '**/*.txt'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: low
-    signals:
-    - tokens
-    note: Token hit is not proof of negotiated crypto; validate with runtime scans.
-- id: pqc.go.circl
-  languages:
-  - go
-  message: 'PQC: Cloudflare CIRCL usage/import detected (Kyber/Dilithium/etc.). Confirm production vs experiment.'
-  severity: INFO
-  pattern-regex: (?i)\bgithub\.com/cloudflare/circl\b|\bcircl/(kem|sign)\b
-  metadata:
-    category: pqc
-    tier: A
-    confidence: medium
-- id: pqc.haproxy.ssl.bind.ciphers
-  languages:
-  - generic
-  message: 'PQC: HAProxy TLS1.2 cipher list detected (ssl-default-bind-ciphers / bind ... ciphers). Inventory RSA/ECDSA/DH
-    usage and remove legacy suites.'
-  severity: INFO
-  pattern-regex: (?im)^\s*(ssl-default-bind-ciphers|bind\s+.+\s+ciphers)\s+(.+)$
-  paths:
-    include:
-    - '**/haproxy.cfg'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: medium
-    stack: haproxy
-    signals:
-    - tls12_ciphers
-- id: pqc.haproxy.ssl.bind.ciphersuites
-  languages:
-  - generic
-  message: 'PQC: HAProxy TLS1.3 cipher suites detected (ssl-default-bind-ciphersuites / ciphersuites). Inventory TLS1.3 posture.'
-  severity: INFO
-  pattern-regex: (?im)^\s*(ssl-default-bind-ciphersuites|bind\s+.+\s+ciphersuites)\s+(.+)$
-  paths:
-    include:
-    - '**/haproxy.cfg'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: medium
-    stack: haproxy
-    signals:
-    - tls13_ciphers
-- id: pqc.haproxy.ssl.minver
-  languages:
-  - generic
-  message: 'PQC: HAProxy TLS minimum version setting detected. Ensure min TLSv1.2+.'
-  severity: INFO
-  pattern-regex: (?im)^\s*(ssl-default-bind-options|bind\s+.+\s+ssl\s+).*(ssl-min-ver\s+TLSv1\.[0-3]|no-tlsv1(?:\.0)?|no-tlsv11)
-  paths:
-    include:
-    - '**/haproxy.cfg'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: low
-    stack: haproxy
-    signals:
-    - tls_minver
-- id: pqc.ipsec.proposals
-  languages:
-  - generic
-  message: 'PQC: IPsec/IKE proposal configuration detected (ike=/esp=/ikev2=/proposal). DH groups and RSA/ECDSA auth are Shor-vulnerable;
-    plan for PQC/hybrid.'
-  severity: INFO
-  pattern-regex: (?im)^\s*(ike|esp|ikev2|proposal|proposals)\s*=\s*(.+)$
-  paths:
-    include:
-    - '**/ipsec.conf'
-    - '**/strongswan.conf'
-    - '**/swanctl.conf'
-    - '**/*.conf'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: low
-    stack: ipsec
-    signals:
-    - ike
-    - esp
-    - dh_groups
-    - auth
-    pqc_risk: high
-- id: pqc.java.tls.disabledAlgorithms
-  languages:
-  - generic
-  message: 'PQC: Java security policy (jdk.tls.disabledAlgorithms) detected. Confirm legacy algorithms are disabled and inventory
-    crypto use.'
-  severity: INFO
-  pattern-regex: (?im)^\s*jdk\.tls\.disabledAlgorithms\s*=\s*(.+)$
-  paths:
-    include:
-    - '**/java.security'
-    - '**/*.properties'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: medium
-    stack: java
-    signals:
-    - tls_policy
-- id: pqc.java.tls.enabledProtocols
-  languages:
-  - generic
-  message: 'PQC: Java TLS enabled protocols configuration detected. Ensure TLSv1.2+ and inventory negotiated crypto.'
-  severity: INFO
-  pattern-regex: (?im)^\s*(https?\.(protocols|cipherSuites)|jdk\.tls\.client\.protocols|jdk\.tls\.server\.protocols)\s*=\s*(.+)$
-  paths:
-    include:
-    - '**/*.properties'
-    - '**/*.yml'
-    - '**/*.yaml'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: low
-    stack: java
-    signals:
-    - tls_protocols
-    - cipher_policy
-- id: pqc.liboqs.c
-  languages:
-  - c
-  - cpp
-  message: 'PQC: liboqs API usage detected. Record KEM/SIG algorithms and key management.'
-  severity: INFO
-  patterns:
-  - pattern-either:
-    - pattern: OQS_KEM_new(...)
-    - pattern: OQS_KEM_encaps(...)
-    - pattern: OQS_KEM_decaps(...)
-    - pattern: OQS_SIG_new(...)
-    - pattern: OQS_SIG_sign(...)
-    - pattern: OQS_SIG_verify(...)
-    - pattern: OQS_KEM_alg_is_enabled(...)
-    - pattern: OQS_SIG_alg_is_enabled(...)
-    - pattern: '#include <oqs/oqs.h>'
-  metadata:
-    category: pqc
-    tier: A
-    confidence: high
-    ref: https://github.com/open-quantum-safe/liboqs
-- id: pqc.migration.classical.publickey.any
-  languages:
-  - generic
-  message: 'PQC migration inventory: classical public-key crypto referenced (RSA/ECDSA/ECDH/Ed25519/X25519). Not broken today,
-    but not PQC-resistant.'
-  severity: INFO
-  pattern-regex: (?i)\b(rsa|ecdsa|ecdh|ed25519|x25519|secp256r1|prime256v1|secp384r1|curve25519)\b
-  metadata:
-    category: pqc-migration
-    tier: D
-    confidence: low
-- id: pqc.nginx.tls.ciphersuites
-  languages:
-  - generic
-  message: 'PQC: Nginx cipher suite configuration detected. Inventory RSA/ECDSA/DH usage and remove legacy ciphers.'
-  severity: INFO
-  pattern-regex: (?im)^\s*ssl_ciphers\s+([^;]+);
-  paths:
-    include:
-    - '**/nginx.conf'
-    - '**/conf.d/*.conf'
-    - '**/sites-available/*'
-    - '**/sites-enabled/*'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: medium
-    stack: nginx
-    signals:
-    - tls12_ciphers
-- id: pqc.nginx.tls.groups
-  languages:
-  - generic
-  message: 'PQC: Nginx curve/group configuration detected (ECDHE groups). ECDHE is Shor-vulnerable; plan for hybrid/PQC when
-    available.'
-  severity: INFO
-  pattern-regex: (?im)^\s*ssl_ecdh_curve\s+([^;]+);
-  paths:
-    include:
-    - '**/nginx.conf'
-    - '**/conf.d/*.conf'
-    - '**/sites-available/*'
-    - '**/sites-enabled/*'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: medium
-    stack: nginx
-    signals:
-    - ecdh_groups
-    pqc_risk: high
-- id: pqc.nginx.tls.protocols
-  languages:
-  - generic
-  message: 'PQC: Nginx TLS protocol configuration found. Confirm TLSv1.2+ only and inventory negotiated crypto.'
-  severity: INFO
-  pattern-regex: (?im)^\s*ssl_protocols\s+([^;]+);
-  paths:
-    include:
-    - '**/nginx.conf'
-    - '**/conf.d/*.conf'
-    - '**/sites-available/*'
-    - '**/sites-enabled/*'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: medium
-    stack: nginx
-    signals:
-    - tls_protocols
-- id: pqc.openssl.cnf.ciphers
-  languages:
-  - generic
-  message: 'PQC: OpenSSL config sets CipherString/Ciphersuites. Inventory RSA/ECDSA/DH usage and remove legacy crypto.'
-  severity: INFO
-  pattern-regex: (?im)^\s*(CipherString|Ciphersuites)\s*=\s*(.+)\s*$
-  paths:
-    include:
-    - '**/openssl.cnf'
-    - '**/openssl*.cnf'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: medium
-    stack: openssl
-    signals:
-    - cipher_policy
-- id: pqc.openssl.cnf.groups
-  languages:
-  - generic
-  message: 'PQC: OpenSSL config sets Groups/Curves. ECDHE groups are Shor-vulnerable; plan for hybrid/PQC when available.'
-  severity: INFO
-  pattern-regex: (?im)^\s*(Groups|Curves)\s*=\s*(.+)\s*$
-  paths:
-    include:
-    - '**/openssl.cnf'
-    - '**/openssl*.cnf'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: medium
-    stack: openssl
-    signals:
-    - ecdh_groups
-    pqc_risk: high
-- id: pqc.openssl.cnf.minprotocol
-  languages:
-  - generic
-  message: 'PQC: OpenSSL config sets MinProtocol/MaxProtocol. Verify TLS policy and inventory negotiated crypto.'
-  severity: INFO
-  pattern-regex: (?im)^\s*(MinProtocol|MaxProtocol)\s*=\s*(TLSv1(?:\.[0-3])?)\s*$
-  paths:
-    include:
-    - '**/openssl.cnf'
-    - '**/openssl*.cnf'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: medium
-    stack: openssl
-    signals:
-    - tls_protocols
-- id: pqc.openssl.cnf.oqsprovider
-  languages:
-  - generic
-  message: 'PQC: OpenSSL config references oqsprovider/providers. Confirm activation and allowed groups.'
-  severity: INFO
-  pattern-regex: (?im)^\s*\[providers\]\s*$|^\s*\[oqsprovider\]\s*$|\boqsprovider\b|^\s*activate\s*=\s*1\s*$|^\s*providers\s*=\s*providers\s*$
-  metadata:
-    category: pqc
-    tier: A
-    confidence: medium
-- id: pqc.openvpn.crypto
-  languages:
-  - generic
-  message: 'PQC: OpenVPN crypto configuration detected (cipher/auth/data-ciphers/tls-version-min). Inventory RSA/ECDSA/DH
-    usage and ensure modern suites.'
-  severity: INFO
-  pattern-regex: (?im)^\s*(cipher|data-ciphers|data-ciphers-fallback|auth|tls-version-min|tls-cipher|tls-ciphersuites|ecdh-curve|dh)\s+(.+)$
-  paths:
-    include:
-    - '**/*.ovpn'
-    - '**/openvpn/*.conf'
-    - '**/server.conf'
-    - '**/client.conf'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: medium
-    stack: openvpn
-    signals:
-    - tls_policy
-    - cipher_policy
-    - kex
-    pqc_risk: high
-- id: pqc.oqsprovider.openssl.c
-  languages:
-  - c
-  - cpp
-  message: 'PQC: OpenSSL oqsprovider detected (provider loading). Verify enabled groups/sigs and interoperability.'
-  severity: INFO
-  patterns:
-  - pattern-either:
-    - pattern: OSSL_PROVIDER_load(..., "oqsprovider")
-    - pattern: OSSL_PROVIDER_load(..., 'oqsprovider')
-    - pattern: OSSL_PROVIDER_load($LIBCTX, "oqsprovider")
-    - pattern: OSSL_PROVIDER_load($LIBCTX, 'oqsprovider')
-  metadata:
-    category: pqc
-    tier: A
-    confidence: high
-    ref: https://github.com/open-quantum-safe/oqs-provider
-- id: pqc.rust.pqc.crates
-  languages:
-  - generic
-  message: 'PQC: Rust crate indicators detected (Cargo.toml / code). Confirm actual usage and selected algorithms.'
-  severity: INFO
-  pattern-regex: (?i)\b(pqcrypto|pqcrypto-kyber|pqcrypto-dilithium|kyber-pke|dilithium|sphincs|falcon|mceliece|hqc|bike)\b
-  metadata:
-    category: pqc
-    tier: A
-    confidence: low
-- id: pqc.ssh.kex.keyword
-  languages:
-  - generic
-  message: 'PQC/Hybrid signal: SSH KEX keyword detected (kyber/mlkem/sntrup/ntru/hybrid). Confirm actual OpenSSH build/support.'
-  severity: INFO
-  pattern-regex: (?i)\bKexAlgorithms\b.*\b(kyber|mlkem|sntrup|ntru|hybrid)\b|\b(kyber|mlkem|sntrup|ntru)\b.*\b(kex|KexAlgorithms)\b
-  metadata:
-    category: pqc
-    tier: B
-    confidence: low
-- id: pqc.sshd.algorithms
-  languages:
-  - generic
-  message: 'PQC: sshd_config crypto algorithms detected (KexAlgorithms/Ciphers/MACs/HostKeyAlgorithms). DH/ECDH/ECDSA/RSA
-    are Shor-vulnerable; plan for PQC/hybrid where applicable.'
-  severity: INFO
-  pattern-regex: (?im)^\s*(KexAlgorithms|Ciphers|MACs|HostKeyAlgorithms|PubkeyAcceptedAlgorithms)\s+(.+)$
-  paths:
-    include:
-    - '**/sshd_config'
-    - '**/ssh/sshd_config'
-    - '**/etc/ssh/sshd_config'
-  metadata:
-    category: pqc
-    tier: B
-    confidence: medium
-    stack: ssh
-    signals:
-    - kex
-    - ciphers
-    - mac
-    - hostkeys
-    pqc_risk: high
-- id: weak.cipher.blowfish.idea.generic
-  languages:
-  - generic
-  message: 'Legacy crypto: Blowfish/IDEA detected. Prefer modern AEAD (AES-GCM/ChaCha20-Poly1305).'
-  severity: WARNING
-  pattern-regex: (?i)\bblowfish\b|\bidea\b
-  metadata:
-    category: weak-crypto
-    tier: C
-    type: cipher
-    confidence: low
-- id: weak.cipher.des3desrc4.generic
-  languages:
-  - generic
-  message: 'Weak crypto: DES/3DES/RC4 detected (deprecated). Prefer AES-GCM or ChaCha20-Poly1305.'
-  severity: ERROR
-  pattern-regex: (?i)\bdes\b|\b3des\b|\bdes-ede3\b|\brc4\b|\barcfour\b
-  metadata:
-    category: weak-crypto
-    tier: C
-    type: cipher
-    confidence: low
-- id: weak.dotnet.certvalidationcallback
-  languages:
-  - csharp
-  message: 'Critical: .NET custom cert validation callback present. Ensure it does not accept all certificates.'
-  severity: WARNING
-  pattern-regex: (?i)\bServerCertificateCustomValidationCallback\b|\bRemoteCertificateValidationCallback\b
-  metadata:
-    category: weak-crypto
-    tier: C
-    type: tls
-    confidence: medium
-- id: weak.go.import.md5sha1
-  languages:
-  - go
-  message: 'Weak crypto: Go import crypto/md5 or crypto/sha1 detected.'
-  severity: ERROR
-  pattern-either:
-  - pattern-regex: import\s+"crypto/md5"
-  - pattern-regex: import\s+"crypto/sha1"
-  - pattern-regex: import\s+\(\s*("crypto/md5"|"crypto/sha1")
-  metadata:
-    category: weak-crypto
-    tier: C
-    type: hash
-    confidence: medium
-- id: weak.hash.md5.generic
-  languages:
-  - generic
-  message: 'Weak crypto: MD5 detected (broken). Replace with SHA-256+ (or Argon2/bcrypt/scrypt for passwords).'
-  severity: ERROR
-  pattern-regex: (?i)\bmd5\b|md5withrsa|hmacmd5
-  metadata:
-    category: weak-crypto
-    tier: C
-    type: hash
-    confidence: low
-- id: weak.hash.sha1.generic
-  languages:
-  - generic
-  message: 'Weak crypto: SHA-1 detected (deprecated). Replace with SHA-256+.'
-  severity: ERROR
-  pattern-regex: (?i)\bsha-?1\b|sha1withrsa|hmacsha1
-  metadata:
-    category: weak-crypto
-    tier: C
-    type: hash
-    confidence: low
-- id: weak.java.cipher.weakmodes
-  languages:
-  - java
-  message: 'Weak crypto: Java Cipher uses DES/3DES/RC4/ECB. Prefer AES/GCM/NoPadding or ChaCha20-Poly1305.'
-  severity: ERROR
-  pattern-regex: (?i)\bCipher\.getInstance\(".*(DES|DESede|3DES|RC4|ECB).*"\)
-  metadata:
-    category: weak-crypto
-    tier: C
-    type: cipher
-    confidence: medium
-- id: weak.java.messagedigest.md5sha1
-  languages:
-  - java
-  message: 'Weak crypto: Java MessageDigest MD5/SHA-1 detected.'
-  severity: ERROR
-  pattern-either:
-  - pattern: MessageDigest.getInstance("MD5")
-  - pattern: MessageDigest.getInstance("SHA-1")
-  metadata:
-    category: weak-crypto
-    tier: C
-    type: hash
-    confidence: high
-- id: weak.mode.ecb.generic
-  languages:
-  - generic
-  message: 'Weak crypto: ECB mode detected (unsafe). Use AEAD (AES-GCM/ChaCha20-Poly1305).'
-  severity: ERROR
-  pattern-regex: (?i)\bECB\b|\bAES[-_ ]?ECB\b|\bDES[-_ ]?ECB\b
-  metadata:
-    category: weak-crypto
-    tier: C
-    type: mode
-    confidence: low
-- id: weak.node.createhash.md5sha1
+    - pattern: crypto.createHmac('md5', ...)
+    - pattern: crypto.createHmac("md5", ...)
+    - pattern: crypto.createHmac('sha1', ...)
+    - pattern: crypto.createHmac("sha1", ...)
+  message: 'PQC CBOM Finding (Crypto-Agility=No): [Node.js] Weak HMAC algorithm selected (MD5/SHA1).'
   languages:
   - javascript
   - typescript
-  message: 'Weak crypto: Node crypto.createHash(''md5''/''sha1'') detected.'
   severity: ERROR
-  pattern-either:
-  - pattern: crypto.createHash("md5")
-  - pattern: crypto.createHash("sha1")
-  - pattern: crypto.createHash('md5')
-  - pattern: crypto.createHash('sha1')
   metadata:
-    category: weak-crypto
-    tier: C
-    type: hash
-    confidence: high
-- id: weak.openssl.seclevel.low
+    vulnerability: Weak HMAC (MD5/SHA1)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: HMAC-MD5/HMAC-SHA1
+    algorithm_type: MAC
+    cryptographic_function: Message Authentication
+    library: node:crypto
+    purpose: Integrity/MAC
+    recommended_mitigation: Use HMAC-SHA-256 or HMAC-SHA-512.
+    cbom:
+      cryptographic_function: Message Authentication
+      algorithm_used: HMAC-MD5/HMAC-SHA1
+      algorithm_category: MAC
+      library_module: node:crypto
+      key_length: variable
+      purpose_usage: Integrity/MAC
+- id: pqc-js-weak-cipher-node-encrypt
+  patterns:
+  - pattern-either:
+    - pattern: crypto.createCipheriv('des', ...)
+    - pattern: crypto.createCipheriv("des", ...)
+    - pattern: crypto.createCipheriv('des-cbc', ...)
+    - pattern: crypto.createCipheriv("des-cbc", ...)
+    - pattern: crypto.createCipheriv('rc4', ...)
+    - pattern: crypto.createCipheriv("rc4", ...)
+    - pattern: crypto.createCipheriv('bf-cbc', ...)
+    - pattern: crypto.createCipheriv("bf-cbc", ...)
+    - pattern: crypto.createCipheriv('aes-128-ecb', ...)
+    - pattern: crypto.createCipheriv("aes-128-ecb", ...)
+    - pattern: crypto.createCipheriv('aes-256-ecb', ...)
+    - pattern: crypto.createCipheriv("aes-256-ecb", ...)
+  message: 'PQC CBOM Finding (Crypto-Agility=No): [Node.js] Weak/unsafe cipher or mode detected (DES/RC4/Blowfish/ECB).'
   languages:
-  - generic
-  message: 'Weak config: OpenSSL security level lowered (SECLEVEL=0/1). Often enables weak suites.'
+  - javascript
+  - typescript
+  severity: ERROR
+  metadata:
+    vulnerability: Hardcoded Weak Cipher (Node.js)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: DES/RC4/Blowfish/ECB
+    algorithm_type: Encryption/Decryption
+    cryptographic_function: Encryption/Decryption
+    library: node:crypto
+    purpose: Encryption
+    recommended_mitigation: Use AES-GCM or ChaCha20-Poly1305; avoid ECB and legacy ciphers.
+    cbom:
+      cryptographic_function: Encryption/Decryption
+      algorithm_used: DES/RC4/Blowfish/ECB
+      algorithm_category: Encryption/Decryption
+      library_module: node:crypto
+      key_length: variable
+      purpose_usage: Encryption
+- id: pqc-js-weak-cipher-node-decrypt
+  patterns:
+  - pattern-either:
+    - pattern: crypto.createDecipheriv('des', ...)
+    - pattern: crypto.createDecipheriv("des", ...)
+    - pattern: crypto.createDecipheriv('des-cbc', ...)
+    - pattern: crypto.createDecipheriv("des-cbc", ...)
+    - pattern: crypto.createDecipheriv('rc4', ...)
+    - pattern: crypto.createDecipheriv("rc4", ...)
+    - pattern: crypto.createDecipheriv('bf-cbc', ...)
+    - pattern: crypto.createDecipheriv("bf-cbc", ...)
+    - pattern: crypto.createDecipheriv('aes-128-ecb', ...)
+    - pattern: crypto.createDecipheriv("aes-128-ecb", ...)
+    - pattern: crypto.createDecipheriv('aes-256-ecb', ...)
+    - pattern: crypto.createDecipheriv("aes-256-ecb", ...)
+  message: 'PQC CBOM Finding (Crypto-Agility=No): [Node.js] Weak/unsafe decrypt cipher or mode detected (DES/RC4/Blowfish/ECB).'
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  metadata:
+    vulnerability: Hardcoded Weak Cipher (Node.js) - Decrypt
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: DES/RC4/Blowfish/ECB
+    algorithm_type: Encryption/Decryption
+    cryptographic_function: Encryption/Decryption
+    library: node:crypto
+    purpose: Decryption
+    recommended_mitigation: Use AEAD modes; avoid ECB and legacy ciphers.
+    cbom:
+      cryptographic_function: Encryption/Decryption
+      algorithm_used: DES/RC4/Blowfish/ECB
+      algorithm_category: Encryption/Decryption
+      library_module: node:crypto
+      key_length: variable
+      purpose_usage: Decryption
+- id: pqc-js-aes-cbc-non-aead
+  patterns:
+  - pattern-either:
+    - pattern: crypto.createCipheriv('aes-128-cbc', ...)
+    - pattern: crypto.createCipheriv("aes-128-cbc", ...)
+    - pattern: crypto.createCipheriv('aes-192-cbc', ...)
+    - pattern: crypto.createCipheriv("aes-192-cbc", ...)
+    - pattern: crypto.createCipheriv('aes-256-cbc', ...)
+    - pattern: crypto.createCipheriv("aes-256-cbc", ...)
+    - pattern: crypto.createDecipheriv('aes-128-cbc', ...)
+    - pattern: crypto.createDecipheriv("aes-128-cbc", ...)
+    - pattern: crypto.createDecipheriv('aes-192-cbc', ...)
+    - pattern: crypto.createDecipheriv("aes-192-cbc", ...)
+    - pattern: crypto.createDecipheriv('aes-256-cbc', ...)
+    - pattern: crypto.createDecipheriv("aes-256-cbc", ...)
+  message: 'CBOM Finding (Crypto-Agility=Low): [Node.js] AES-CBC detected. CBC is not AEAD; ensure integrity (MAC/EtM) or
+    migrate to AES-GCM/ChaCha20-Poly1305.'
+  languages:
+  - javascript
+  - typescript
   severity: WARNING
-  pattern-regex: (?i)\b@SECLEVEL=[01]\b|\bseclevel\s*=\s*[01]\b
   metadata:
-    category: weak-crypto
-    tier: C
-    type: openssl-config
-    confidence: medium
-- id: weak.python.ecb.mode
+    vulnerability: Non-AEAD Symmetric Mode (AES-CBC)
+    pqc_risk: Medium
+    crypto_agility: Low
+    algorithm_name: AES-CBC
+    algorithm_type: Encryption/Decryption
+    cryptographic_function: Encryption/Decryption
+    library: node:crypto
+    purpose: Encryption/Decryption
+    recommended_mitigation: Prefer AEAD. If CBC required, add integrity protection correctly (HMAC).
+    cbom:
+      cryptographic_function: Encryption/Decryption
+      algorithm_used: AES-CBC
+      algorithm_category: Encryption/Decryption
+      library_module: node:crypto
+      key_length: variable
+      purpose_usage: Encryption/Decryption
+- id: pqc-js-legacy-createcipher
+  patterns:
+  - pattern-either:
+    - pattern: crypto.createCipher(...)
+    - pattern: crypto.createDecipher(...)
+  message: 'Security Finding: [Node.js] Legacy crypto.createCipher/createDecipher API detected (deprecated, risky defaults).'
   languages:
-  - python
-  message: 'Weak crypto: Python ECB mode indicator detected (MODE_ECB).'
-  severity: ERROR
-  pattern-regex: (?i)\bMODE_ECB\b
+  - javascript
+  - typescript
+  severity: WARNING
   metadata:
-    category: weak-crypto
-    tier: C
-    type: mode
-    confidence: medium
-- id: weak.python.hashlib.md5sha1
+    vulnerability: Deprecated Node Crypto API
+    pqc_risk: Medium
+    crypto_agility: Low
+    algorithm_name: Legacy createCipher/createDecipher
+    algorithm_type: Encryption/Decryption
+    cryptographic_function: Encryption/Decryption
+    library: node:crypto
+    purpose: Encryption/Decryption
+    recommended_mitigation: Use createCipheriv/createDecipheriv with AEAD algorithms and explicit IV/params.
+    cbom:
+      cryptographic_function: Encryption/Decryption
+      algorithm_used: Legacy createCipher/createDecipher
+      algorithm_category: Encryption/Decryption
+      library_module: node:crypto
+      key_length: variable
+      purpose_usage: Encryption/Decryption
+- id: pqc-js-weak-kdf-pbkdf2-sha1
+  patterns:
+  - pattern-either:
+    - pattern: crypto.pbkdf2(..., 'sha1', ...)
+    - pattern: crypto.pbkdf2(..., "sha1", ...)
+    - pattern: crypto.pbkdf2Sync(..., 'sha1', ...)
+    - pattern: crypto.pbkdf2Sync(..., "sha1", ...)
+  message: 'PQC CBOM Finding (Crypto-Agility=No): [Node.js] PBKDF2 configured with SHA1.'
   languages:
-  - python
-  message: 'Weak crypto: Python hashlib.md5()/sha1() detected.'
+  - javascript
+  - typescript
   severity: ERROR
-  pattern-either:
-  - pattern: hashlib.md5(...)
-  - pattern: hashlib.sha1(...)
   metadata:
-    category: weak-crypto
-    tier: C
-    type: hash
-    confidence: high
-- id: weak.rsa.shortkey.generic
+    vulnerability: Weak KDF Configuration (PBKDF2-SHA1)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: PBKDF2-SHA1
+    algorithm_type: KDF / Password Hashing
+    cryptographic_function: Key Derivation
+    library: node:crypto
+    purpose: Password Derivation
+    recommended_mitigation: Prefer scrypt/Argon2id; otherwise PBKDF2-HMAC-SHA256 with strong iteration count.
+    cbom:
+      cryptographic_function: Key Derivation
+      algorithm_used: PBKDF2-SHA1
+      algorithm_category: KDF / Password Hashing
+      library_module: node:crypto
+      key_length: variable
+      purpose_usage: Password Derivation
+- id: pqc-js-insecure-rng
+  patterns:
+  - pattern: Math.random(...)
+  message: 'Security Finding: Math.random() detected. If used for secrets/tokens/keys, it is not cryptographically secure.'
   languages:
-  - generic
-  message: 'Weak crypto: RSA 1024/1536-bit referenced. Upgrade to >=2048 (often 3072+) and plan PQC migration.'
-  severity: ERROR
-  pattern-regex: (?i)\bRSA\b.{0,40}\b(1024|1536)\b|\brsa\s*(1024|1536)\b|\bkeysize\s*[:=]\s*(1024|1536)\b|RSA_generate_key_ex\s*\([^,]+,\s*(1024|1536)\b
+  - javascript
+  - typescript
+  severity: WARNING
   metadata:
-    category: weak-crypto
-    tier: C
-    type: keysize
-    confidence: low
-- id: weak.tls.go.insecureskipverify
+    vulnerability: Insecure RNG (Math.random)
+    pqc_risk: Medium
+    crypto_agility: 'No'
+    algorithm_name: Math.random
+    algorithm_type: Randomness
+    cryptographic_function: Random Number Generation
+    library: JS Runtime
+    purpose: Token/ID generation
+    recommended_mitigation: Use crypto.randomBytes() or WebCrypto getRandomValues() for security-sensitive data.
+    cbom:
+      cryptographic_function: Random Number Generation
+      algorithm_used: Math.random
+      algorithm_category: Randomness
+      library_module: JS Runtime
+      key_length: variable
+      purpose_usage: Token/ID generation
+- id: pqc-js-good-rng-inventory
+  patterns:
+  - pattern-either:
+    - pattern: crypto.randomBytes(...)
+    - pattern: crypto.webcrypto.getRandomValues(...)
+  message: 'CBOM Inventory (Good Practice): CSPRNG usage detected (crypto.randomBytes / WebCrypto getRandomValues).'
   languages:
-  - go
-  message: 'Critical: Go TLS InsecureSkipVerify=true disables certificate verification.'
-  severity: ERROR
-  pattern: 'tls.Config{..., InsecureSkipVerify: true, ...}
+  - javascript
+  - typescript
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Low
+    crypto_agility: High
+    algorithm_name: CSPRNG
+    algorithm_type: Randomness
+    cryptographic_function: Random Number Generation
+    library: node:crypto / WebCrypto
+    purpose: Token/Key material
+    cbom:
+      cryptographic_function: Random Number Generation
+      algorithm_used: CSPRNG
+      algorithm_category: Randomness
+      library_module: node:crypto / WebCrypto
+      key_length: variable
+      purpose_usage: Token/Key material
+- id: pqc-js-tls-rejectunauthorized-false-object
+  patterns:
+  - pattern: '$X = { ..., rejectUnauthorized: false, ... }
 
-    '
-  metadata:
-    category: weak-crypto
-    tier: C
-    type: tls
-    confidence: high
-- id: weak.tls.python.verifyfalse
+      '
+  message: 'Security Finding: TLS certificate verification disabled (rejectUnauthorized: false).'
   languages:
-  - python
-  message: 'Critical: Python TLS verification disabled (verify=False / CERT_NONE).'
+  - javascript
+  - typescript
   severity: ERROR
+  metadata:
+    vulnerability: TLS Verification Disabled (rejectUnauthorized=false)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: TLS (verification disabled)
+    algorithm_type: TLS
+    cryptographic_function: Transport Security
+    library: https/tls
+    purpose: HTTPS/TLS
+    recommended_mitigation: Enable certificate verification and configure CA trust; do not disable rejectUnauthorized in production.
+    cbom:
+      cryptographic_function: Transport Security
+      algorithm_used: TLS (verification disabled)
+      algorithm_category: TLS
+      library_module: https/tls
+      key_length: variable
+      purpose_usage: HTTPS/TLS
+- id: pqc-js-tls-rejectunauthorized-false-agent
   patterns:
   - pattern-either:
-    - pattern: requests.get(..., verify=False, ...)
-    - pattern: requests.post(..., verify=False, ...)
-    - pattern: urllib3.PoolManager(..., cert_reqs="CERT_NONE", ...)
-  metadata:
-    category: weak-crypto
-    tier: C
-    type: tls
-    confidence: high
-- id: weak.tls.v1.v1_1.generic
+    - pattern: 'new https.Agent({ ..., rejectUnauthorized: false, ... })'
+    - pattern: 'new tls.TLSSocket(..., { ..., rejectUnauthorized: false, ... })'
+  message: 'Security Finding: TLS verification disabled in Agent/TLSSocket (rejectUnauthorized: false).'
   languages:
-  - generic
-  message: 'Weak crypto: TLS 1.0/1.1 detected. Disable; require TLS 1.2/1.3.'
+  - javascript
+  - typescript
   severity: ERROR
-  pattern-regex: (?i)\bTLSv1(\.0)?\b|\bTLSv1\.1\b|\bssl_protocols\s+.*TLSv1(\.0)?\b|\bMinProtocol\s*=\s*TLSv1(\.0)?\b
   metadata:
-    category: weak-crypto
-    tier: C
-    type: tls
-    confidence: medium
-- id: weak.tls.weakcipher.keywords
+    vulnerability: TLS Verification Disabled (Agent/TLSSocket)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: TLS (verification disabled)
+    algorithm_type: TLS
+    cryptographic_function: Transport Security
+    library: https/tls
+    purpose: HTTPS/TLS
+    recommended_mitigation: Do not disable certificate validation. Fix CA trust and certificate chain issues properly.
+    cbom:
+      cryptographic_function: Transport Security
+      algorithm_used: TLS (verification disabled)
+      algorithm_category: TLS
+      library_module: https/tls
+      key_length: variable
+      purpose_usage: HTTPS/TLS
+- id: pqc-js-node-tls-reject-unauthorized-env
+  patterns:
+  - pattern-either:
+    - pattern: process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+    - pattern: process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+  message: 'Security Finding: NODE_TLS_REJECT_UNAUTHORIZED=0 disables TLS verification globally.'
   languages:
-  - generic
-  message: 'Weak TLS cipher hint: NULL/EXPORT/RC4/3DES/MD5/SHA1/anon suites. Confirm in actual cipher lists.'
+  - javascript
+  - typescript
   severity: ERROR
-  pattern-regex: (?i)\b(NULL|aNULL|eNULL|EXPORT|RC4|3DES|DES|MD5|SHA1|anon)\b
   metadata:
-    category: weak-crypto
-    tier: C
-    type: tls
-    confidence: low
+    vulnerability: Global TLS Verification Disabled (NODE_TLS_REJECT_UNAUTHORIZED=0)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: TLS (verification disabled)
+    algorithm_type: TLS
+    cryptographic_function: Transport Security
+    library: node runtime
+    purpose: HTTPS/TLS
+    recommended_mitigation: Remove this setting; properly configure certificates and CA trust.
+    cbom:
+      cryptographic_function: Transport Security
+      algorithm_used: TLS (verification disabled)
+      algorithm_category: TLS
+      library_module: node runtime
+      key_length: variable
+      purpose_usage: HTTPS/TLS
+- id: pqc-js-tls-weak-minversion
+  patterns:
+  - pattern-either:
+    - pattern: '$X = { ..., minVersion: "TLSv1", ... }
+
+        '
+    - pattern: '$X = { ..., minVersion: "TLSv1.1", ... }
+
+        '
+    - pattern: '$X = { ..., secureProtocol: "TLSv1_method", ... }
+
+        '
+    - pattern: '$X = { ..., secureProtocol: "TLSv1_1_method", ... }
+
+        '
+  message: 'Security Finding: Weak TLS version configured (TLSv1/TLSv1.1).'
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  metadata:
+    vulnerability: Weak TLS Version Configuration
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: TLSv1/TLSv1.1
+    algorithm_type: TLS
+    cryptographic_function: Transport Security
+    library: tls/https
+    purpose: HTTPS/TLS
+    recommended_mitigation: Require TLS 1.2+ (prefer TLS 1.3).
+    cbom:
+      cryptographic_function: Transport Security
+      algorithm_used: TLSv1/TLSv1.1
+      algorithm_category: TLS
+      library_module: tls/https
+      key_length: variable
+      purpose_usage: HTTPS/TLS
+- id: pqc-js-tls-ciphers-config-inventory
+  patterns:
+  - pattern: '$X = { ..., ciphers: $C, ... }
+
+      '
+  message: 'CBOM Inventory: TLS ciphers explicitly configured. Review for weak ciphers (DES/3DES/RC4/EXPORT/NULL/MD5).'
+  languages:
+  - javascript
+  - typescript
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: TLS ciphers (config-defined)
+    algorithm_type: TLS
+    cryptographic_function: Transport Security
+    library: tls/https
+    purpose: HTTPS/TLS
+    recommended_mitigation: Ensure modern ciphersuites; avoid DES/3DES/RC4/EXPORT/NULL/MD5.
+    cbom:
+      cryptographic_function: Transport Security
+      algorithm_used: TLS ciphers (config-defined)
+      algorithm_category: TLS
+      library_module: tls/https
+      key_length: variable
+      purpose_usage: HTTPS/TLS
+- id: pqc-js-weak-hash-cryptojs
+  patterns:
+  - pattern-either:
+    - pattern: CryptoJS.MD5(...)
+    - pattern: CryptoJS.SHA1(...)
+  message: 'PQC CBOM Finding (Crypto-Agility=No): [CryptoJS] Weak hash algorithm usage detected (MD5/SHA1).'
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  metadata:
+    vulnerability: Weak Hash (MD5/SHA1)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: MD5/SHA1
+    algorithm_type: Hashing
+    cryptographic_function: Hashing
+    library: crypto-js
+    purpose: Hashing
+    recommended_mitigation: Use SHA-256/SHA-512 or stronger; avoid MD5/SHA1 for security.
+    cbom:
+      cryptographic_function: Hashing
+      algorithm_used: MD5/SHA1
+      algorithm_category: Hashing
+      library_module: crypto-js
+      key_length: variable
+      purpose_usage: Hashing
+- id: pqc-js-inventory-sign-verify
+  patterns:
+  - pattern-either:
+    - pattern: crypto.createSign(...)
+    - pattern: crypto.createVerify(...)
+    - pattern: crypto.sign(...)
+    - pattern: crypto.verify(...)
+  message: 'CBOM Inventory (PQC Planning): [Node.js] Signature API usage detected (RSA/ECDSA/EdDSA depends on algorithm/key).'
+  languages:
+  - javascript
+  - typescript
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: Asymmetric signatures (key-type dependent)
+    algorithm_type: Asymmetric Crypto
+    cryptographic_function: Sign/Verify
+    library: node:crypto
+    purpose: Digital Signature
+    recommended_mitigation: Inventory algorithms (RSA/ECDSA/EdDSA). Plan PQC/hybrid transition where relevant.
+    cbom:
+      cryptographic_function: Sign/Verify
+      algorithm_used: Asymmetric signatures (key-type dependent)
+      algorithm_category: Asymmetric Crypto
+      library_module: node:crypto
+      key_length: variable
+      purpose_usage: Digital Signature
+- id: pqc-js-inventory-ecdh-dh
+  patterns:
+  - pattern-either:
+    - pattern: crypto.createECDH(...)
+    - pattern: crypto.diffieHellman(...)
+    - pattern: crypto.createDiffieHellman(...)
+  message: 'CBOM Inventory (PQC Planning): [Node.js] Key exchange usage detected (DH/ECDH).'
+  languages:
+  - javascript
+  - typescript
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: DH/ECDH
+    algorithm_type: Key Exchange
+    cryptographic_function: Key Agreement
+    library: node:crypto
+    purpose: Key Exchange
+    recommended_mitigation: Inventory curves/groups. Consider PQC/hybrid key exchange approach where relevant.
+    cbom:
+      cryptographic_function: Key Agreement
+      algorithm_used: DH/ECDH
+      algorithm_category: Key Exchange
+      library_module: node:crypto
+      key_length: variable
+      purpose_usage: Key Exchange
+- id: pqc-js-rsa-weak-moduluslength
+  patterns:
+  - pattern-either:
+    - pattern: 'crypto.generateKeyPair(''rsa'', { ..., modulusLength: 1024, ... }, ...)
+
+        '
+    - pattern: 'crypto.generateKeyPair("rsa", { ..., modulusLength: 1024, ... }, ...)
+
+        '
+    - pattern: 'crypto.generateKeyPairSync(''rsa'', { ..., modulusLength: 1024, ... })
+
+        '
+    - pattern: 'crypto.generateKeyPairSync("rsa", { ..., modulusLength: 1024, ... })
+
+        '
+  message: 'Security Finding: RSA key generation with weak modulusLength (1024-bit) detected.'
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  metadata:
+    vulnerability: Weak RSA Key Size
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: RSA-1024
+    algorithm_type: Asymmetric Crypto
+    cryptographic_function: Key Generation
+    library: node:crypto
+    purpose: Asymmetric Key Generation
+    recommended_mitigation: Use RSA 2048/3072+ (or modern curves). Plan PQC migration for long-term.
+    cbom:
+      cryptographic_function: Key Generation
+      algorithm_used: RSA-1024
+      algorithm_category: Asymmetric Crypto
+      library_module: node:crypto
+      key_length: variable
+      purpose_usage: Asymmetric Key Generation
+- id: pqc-js-jwt-jsonwebtoken-sign-inventory
+  patterns:
+  - pattern-either:
+    - pattern: jwt.sign(...)
+    - pattern: jsonwebtoken.sign(...)
+  message: 'CBOM Inventory (PQC Planning): JWT signing detected (jsonwebtoken). Review algorithm (HS*/RS*/ES*/EdDSA) and key
+    management.'
+  languages:
+  - javascript
+  - typescript
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: JWT signing (algorithm-dependent)
+    algorithm_type: Token Signature
+    cryptographic_function: Digital Signature / MAC
+    library: jsonwebtoken (likely)
+    purpose: Authentication/Authorization
+    recommended_mitigation: Inventory JWT algorithms used; enforce policy-driven algorithm selection and rotation.
+    cbom:
+      cryptographic_function: Digital Signature / MAC
+      algorithm_used: JWT signing (algorithm-dependent)
+      algorithm_category: Token Signature
+      library_module: jsonwebtoken (likely)
+      key_length: variable
+      purpose_usage: Authentication/Authorization
+- id: pqc-js-jwt-jsonwebtoken-verify-inventory
+  patterns:
+  - pattern-either:
+    - pattern: jwt.verify(...)
+    - pattern: jsonwebtoken.verify(...)
+  message: 'CBOM Inventory: JWT verification detected. Ensure accepted algorithms are constrained to prevent algorithm confusion.'
+  languages:
+  - javascript
+  - typescript
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: JWT verification (algorithm-dependent)
+    algorithm_type: Token Verification
+    cryptographic_function: Verify
+    library: jsonwebtoken
+    purpose: Authentication/Authorization
+    recommended_mitigation: Always constrain algorithms in verify options; avoid dynamic key confusion.
+    cbom:
+      cryptographic_function: Verify
+      algorithm_used: JWT verification (algorithm-dependent)
+      algorithm_category: Token Verification
+      library_module: jsonwebtoken
+      key_length: variable
+      purpose_usage: Authentication/Authorization
+- id: pqc-js-jwt-verify-missing-algorithms-constraint
+  patterns:
+  - pattern-either:
+    - pattern: jwt.verify($T, $K)
+    - pattern: jsonwebtoken.verify($T, $K)
+  message: 'Security Finding (Crypto-Agility=Low): jwt.verify called without options. Ensure algorithms are explicitly constrained
+    to prevent algorithm confusion.'
+  languages:
+  - javascript
+  - typescript
+  severity: WARNING
+  metadata:
+    vulnerability: JWT Verification Without Algorithm Constraint
+    pqc_risk: Medium
+    crypto_agility: Low
+    algorithm_name: JWT (unconstrained)
+    algorithm_type: Token Verification
+    cryptographic_function: Verify
+    library: jsonwebtoken
+    purpose: Authentication/Authorization
+    recommended_mitigation: Pass verify options with allowed algorithms and expected issuer/audience.
+    cbom:
+      cryptographic_function: Verify
+      algorithm_used: JWT (unconstrained)
+      algorithm_category: Token Verification
+      library_module: jsonwebtoken
+      key_length: variable
+      purpose_usage: Authentication/Authorization
+- id: pqc-js-jwt-verify-unsafe-none
+  patterns:
+  - pattern-either:
+    - pattern: 'jwt.verify(..., { ..., algorithms: ["none", ...], ... })
+
+        '
+    - pattern: 'jwt.verify(..., { ..., algorithms: [''none'', ...], ... })
+
+        '
+    - pattern: 'jsonwebtoken.verify(..., { ..., algorithms: ["none", ...], ... })
+
+        '
+    - pattern: 'jsonwebtoken.verify(..., { ..., algorithms: [''none'', ...], ... })
+
+        '
+  message: 'Security Finding: JWT verification allows ''none'' algorithm (insecure).'
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  metadata:
+    vulnerability: JWT 'none' Algorithm Allowed
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: JWT none
+    algorithm_type: Token Verification
+    cryptographic_function: Verify
+    library: jsonwebtoken
+    purpose: Authentication/Authorization
+    recommended_mitigation: Never allow 'none'. Constrain allowed algorithms to secure set.
+    cbom:
+      cryptographic_function: Verify
+      algorithm_used: JWT none
+      algorithm_category: Token Verification
+      library_module: jsonwebtoken
+      key_length: variable
+      purpose_usage: Authentication/Authorization
+- id: pqc-js-jose-inventory
+  patterns:
+  - pattern-either:
+    - pattern: new SignJWT(...)
+    - pattern: jwtVerify(...)
+    - pattern: importPKCS8(...)
+    - pattern: importSPKI(...)
+    - pattern: generateKeyPair(...)
+  message: 'CBOM Inventory (PQC Planning): jose library usage detected (JWT/JWS/JWE). Review algorithms and key types for
+    PQC planning.'
+  languages:
+  - javascript
+  - typescript
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: JOSE (algorithm-dependent)
+    algorithm_type: JWT/JWS/JWE
+    cryptographic_function: Signing/Encryption
+    library: jose
+    purpose: Authentication/Authorization / Secure Tokens
+    recommended_mitigation: Inventory JOSE algorithms used and plan for crypto agility and key rotation.
+    cbom:
+      cryptographic_function: Signing/Encryption
+      algorithm_used: JOSE (algorithm-dependent)
+      algorithm_category: JWT/JWS/JWE
+      library_module: jose
+      key_length: variable
+      purpose_usage: Authentication/Authorization / Secure Tokens
+- id: pqc-js-hardcoded-pem-private-key
+  patterns:
+  - pattern-regex: '-----BEGIN (RSA )?PRIVATE KEY-----'
+  message: 'Security Finding: Hardcoded PEM private key material detected in source code.'
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  metadata:
+    vulnerability: Hardcoded Private Key
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: PEM Private Key
+    algorithm_type: Key Material
+    cryptographic_function: Key Management
+    library: N/A
+    purpose: Key Storage
+    recommended_mitigation: Remove embedded keys from source. Store in keystore/secret manager/HSM with rotation.
+    cbom:
+      cryptographic_function: Key Management
+      algorithm_used: PEM Private Key
+      algorithm_category: Key Material
+      library_module: N/A
+      key_length: variable
+      purpose_usage: Key Storage
+- id: pqc-js-hardcoded-pem-certificate
+  patterns:
+  - pattern-regex: '-----BEGIN CERTIFICATE-----'
+  message: 'CBOM Inventory/Security Finding: Embedded certificate detected in source code. Review if intentional (pinning)
+    and manage lifecycle.'
+  languages:
+  - javascript
+  - typescript
+  severity: WARNING
+  metadata:
+    vulnerability: Embedded Certificate
+    pqc_risk: Medium
+    crypto_agility: Low
+    algorithm_name: X.509 Certificate
+    algorithm_type: Certificate Material
+    cryptographic_function: Certificate Management
+    library: N/A
+    purpose: Trust/PIN/Transport
+    recommended_mitigation: If pinning, manage rotation and expiry. Prefer platform trust store unless justified.
+    cbom:
+      cryptographic_function: Certificate Management
+      algorithm_used: X.509 Certificate
+      algorithm_category: Certificate Material
+      library_module: N/A
+      key_length: variable
+      purpose_usage: Trust/PIN/Transport
+- id: pqc-js-webcrypto-inventory
+  patterns:
+  - pattern-either:
+    - pattern: crypto.subtle.digest(...)
+    - pattern: crypto.subtle.generateKey(...)
+    - pattern: crypto.subtle.importKey(...)
+    - pattern: crypto.subtle.exportKey(...)
+    - pattern: crypto.subtle.encrypt(...)
+    - pattern: crypto.subtle.decrypt(...)
+    - pattern: crypto.subtle.sign(...)
+    - pattern: crypto.subtle.verify(...)
+    - pattern: window.crypto.subtle.digest(...)
+    - pattern: window.crypto.subtle.generateKey(...)
+    - pattern: window.crypto.subtle.importKey(...)
+    - pattern: window.crypto.subtle.exportKey(...)
+    - pattern: window.crypto.subtle.encrypt(...)
+    - pattern: window.crypto.subtle.decrypt(...)
+    - pattern: window.crypto.subtle.sign(...)
+    - pattern: window.crypto.subtle.verify(...)
+  message: 'CBOM Inventory (PQC Planning): WebCrypto (crypto.subtle) usage detected. Inventory algorithms (RSA/ECDSA/ECDH/AES-GCM)
+    for transition planning.'
+  languages:
+  - javascript
+  - typescript
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: WebCrypto (algorithm-dependent)
+    algorithm_type: Crypto API
+    cryptographic_function: Varies
+    library: WebCrypto
+    purpose: Client-side crypto
+    recommended_mitigation: Inventory algorithm parameters; centralize crypto policy and plan migration where needed.
+    cbom:
+      cryptographic_function: Varies
+      algorithm_used: WebCrypto (algorithm-dependent)
+      algorithm_category: Crypto API
+      library_module: WebCrypto
+      key_length: variable
+      purpose_usage: Client-side crypto
+- id: pqc-js-webcrypto-weak-sha1
+  patterns:
+  - pattern-either:
+    - pattern: crypto.subtle.digest("SHA-1", ...)
+    - pattern: crypto.subtle.digest('SHA-1', ...)
+    - pattern: window.crypto.subtle.digest("SHA-1", ...)
+    - pattern: window.crypto.subtle.digest('SHA-1', ...)
+  message: 'PQC CBOM Finding (Crypto-Agility=No): WebCrypto SHA-1 digest detected.'
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  metadata:
+    vulnerability: Weak Hash (SHA-1)
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: SHA-1
+    algorithm_type: Hashing
+    cryptographic_function: Hashing
+    library: WebCrypto
+    purpose: Hashing
+    recommended_mitigation: Use SHA-256+.
+    cbom:
+      cryptographic_function: Hashing
+      algorithm_used: SHA-1
+      algorithm_category: Hashing
+      library_module: WebCrypto
+      key_length: variable
+      purpose_usage: Hashing
+- id: pqc-js-not-encryption-base64
+  patterns:
+  - pattern-either:
+    - pattern: Buffer.from(...).toString('base64')
+    - pattern: Buffer.from(...).toString("base64")
+    - pattern: atob(...)
+    - pattern: btoa(...)
+  message: 'CBOM Note: Base64 encode/decode detected. Base64 is encoding, not encryption. Review for misuse protecting sensitive
+    data.'
+  languages:
+  - javascript
+  - typescript
+  severity: INFO
+  metadata:
+    category: Misuse Signal
+    pqc_risk: Low
+    crypto_agility: N/A
+    algorithm_name: Base64 (encoding)
+    algorithm_type: Encoding
+    cryptographic_function: Encoding
+    library: JS Runtime
+    purpose: Data transformation
+    recommended_mitigation: Use proper cryptography (AEAD) if confidentiality/integrity is required.
+    cbom:
+      cryptographic_function: Encoding
+      algorithm_used: Base64 (encoding)
+      algorithm_category: Encoding
+      library_module: JS Runtime
+      key_length: variable
+      purpose_usage: Data transformation
+- id: pqc-js-hardcoded-jwk-private-d
+  patterns:
+  - pattern-regex: '"d"\s*:\s*"[A-Za-z0-9_\-]+=*"'
+  message: 'Security Finding: Hardcoded JWK private key material detected (field ''d'' present).'
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  metadata:
+    vulnerability: Hardcoded JWK Private Key
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: JWK Private Key (d)
+    algorithm_type: Key Material
+    cryptographic_function: Key Management
+    library: N/A
+    purpose: Key Storage
+    recommended_mitigation: Remove private keys from source; store in secret manager/HSM/keystore with rotation.
+    cbom:
+      cryptographic_function: Key Management
+      algorithm_used: JWK Private Key (d)
+      algorithm_category: Key Material
+      library_module: N/A
+      key_length: variable
+      purpose_usage: Key Storage
+- id: pqc-js-key-loading-pem-inventory
+  patterns:
+  - pattern-either:
+    - pattern: fs.readFileSync(..., "utf8")
+    - pattern: fs.readFileSync(..., 'utf8')
+    - pattern: fs.readFileSync(...)
+    - pattern: crypto.createPrivateKey(...)
+    - pattern: crypto.createPublicKey(...)
+    - pattern: importPKCS8(...)
+    - pattern: importSPKI(...)
+  message: 'CBOM Inventory (Key Management): Key/certificate loading detected (fs.readFileSync/createPrivateKey/createPublicKey/importPKCS8/importSPKI).
+    Review storage, rotation, and algorithm footprint for PQC planning.'
+  languages:
+  - javascript
+  - typescript
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: Key loading (key-type dependent)
+    algorithm_type: Key Management
+    cryptographic_function: Key Import/Load
+    library: node:fs / node:crypto / jose
+    purpose: Key/Cert Management
+    recommended_mitigation: Ensure keys are not committed. Use secure storage and enforce rotation + centralized crypto policy.
+    cbom:
+      cryptographic_function: Key Import/Load
+      algorithm_used: Key loading (key-type dependent)
+      algorithm_category: Key Management
+      library_module: node:fs / node:crypto / jose
+      key_length: variable
+      purpose_usage: Key/Cert Management
+- id: pqc-php-key-loading-openssl-inventory
+  patterns:
+  - pattern-either:
+    - pattern: openssl_pkey_get_private(...)
+    - pattern: openssl_pkey_get_public(...)
+    - pattern: openssl_x509_read(...)
+    - pattern: file_get_contents(...)
+  message: 'CBOM Inventory (Key Management): PHP OpenSSL key/cert loading detected. Review if keys are loaded from files/env
+    and ensure secure storage/rotation.'
+  languages:
+  - php
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: Key/Cert loading (key-type dependent)
+    algorithm_type: Key Management
+    cryptographic_function: Key Import/Load
+    library: PHP OpenSSL / PHP Core
+    purpose: Key/Cert Management
+    recommended_mitigation: Avoid embedding keys. Use secure keystore/secret manager; rotate keys/certs; inventory key types
+      for PQC transition.
+    cbom:
+      cryptographic_function: Key Import/Load
+      algorithm_used: Key/Cert loading (key-type dependent)
+      algorithm_category: Key Management
+      library_module: PHP OpenSSL / PHP Core
+      key_length: variable
+      purpose_usage: Key/Cert Management
+- id: pqc-php-openssl-file-scheme-privatekey
+  patterns:
+  - pattern-regex: file://[^\s"']+\.pem
+  message: 'CBOM Inventory: PHP OpenSSL file:// scheme referencing a .pem file detected. Verify permissions and secrets management/rotation.'
+  languages:
+  - php
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: PEM file reference
+    algorithm_type: Key Management
+    cryptographic_function: Key Import/Load
+    library: PHP OpenSSL
+    purpose: Key/Cert Management
+    recommended_mitigation: Restrict file permissions; ensure key rotation; prefer managed secret stores.
+    cbom:
+      cryptographic_function: Key Import/Load
+      algorithm_used: PEM file reference
+      algorithm_category: Key Management
+      library_module: PHP OpenSSL
+      key_length: variable
+      purpose_usage: Key/Cert Management
+- id: pqc-js-curve-inventory-namedcurve
+  patterns:
+  - pattern-either:
+    - pattern: 'crypto.generateKeyPair(''ec'', { ..., namedCurve: $C, ... }, ...)
+
+        '
+    - pattern: 'crypto.generateKeyPair("ec", { ..., namedCurve: $C, ... }, ...)
+
+        '
+    - pattern: 'crypto.generateKeyPairSync(''ec'', { ..., namedCurve: $C, ... })
+
+        '
+    - pattern: 'crypto.generateKeyPairSync("ec", { ..., namedCurve: $C, ... })
+
+        '
+    - pattern: 'crypto.createECDH($C)
+
+        '
+  message: 'CBOM Inventory (PQC Planning): EC curve usage detected (namedCurve/createECDH). Inventory curves (e.g., prime256v1,
+    secp384r1) for asymmetric footprint assessment.'
+  languages:
+  - javascript
+  - typescript
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: Elliptic Curve (curve-dependent)
+    algorithm_type: Asymmetric Crypto / Key Exchange
+    cryptographic_function: Key Generation / Key Agreement
+    library: node:crypto
+    purpose: EC key usage
+    recommended_mitigation: Inventory curves and where used (TLS/JWT/signing). Plan PQC/hybrid transition strategy.
+    cbom:
+      cryptographic_function: Key Generation / Key Agreement
+      algorithm_used: Elliptic Curve (curve-dependent)
+      algorithm_category: Asymmetric Crypto / Key Exchange
+      library_module: node:crypto
+      key_length: variable
+      purpose_usage: EC key usage
+- id: pqc-php-curve-inventory-openssl
+  patterns:
+  - pattern-either:
+    - pattern: "openssl_pkey_new([\n  ...,\n  \"curve_name\" => $C,\n  ...\n])\n"
+    - pattern: "openssl_pkey_new([\n  ...,\n  'curve_name' => $C,\n  ...\n])\n"
+  message: 'CBOM Inventory (PQC Planning): OpenSSL EC curve configuration detected (curve_name). Inventory curves for asymmetric
+    footprint assessment.'
+  languages:
+  - php
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: Elliptic Curve (curve-dependent)
+    algorithm_type: Asymmetric Crypto
+    cryptographic_function: Key Generation
+    library: PHP OpenSSL
+    purpose: EC key usage
+    recommended_mitigation: Inventory curves and usage (signing/key exchange). Plan PQC/hybrid transition.
+    cbom:
+      cryptographic_function: Key Generation
+      algorithm_used: Elliptic Curve (curve-dependent)
+      algorithm_category: Asymmetric Crypto
+      library_module: PHP OpenSSL
+      key_length: variable
+      purpose_usage: EC key usage
+- id: pqc-js-tls-ciphers-contains-weak-tokens
+  patterns:
+  - pattern-regex: (?i)ciphers\s*:\s*['"][^'"]*(RC4|3DES|DES|EXPORT|NULL|MD5)[^'"]*['"]
+  message: 'Security Finding: TLS ciphers configuration contains weak tokens (RC4/3DES/DES/EXPORT/NULL/MD5).'
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  metadata:
+    vulnerability: Weak TLS Cipher Configuration
+    pqc_risk: High
+    crypto_agility: 'No'
+    algorithm_name: TLS weak ciphers
+    algorithm_type: TLS
+    cryptographic_function: Transport Security
+    library: tls/https
+    purpose: HTTPS/TLS
+    recommended_mitigation: Remove weak ciphers. Prefer modern TLS 1.2+ suites and TLS 1.3 defaults.
+    cbom:
+      cryptographic_function: Transport Security
+      algorithm_used: TLS weak ciphers
+      algorithm_category: TLS
+      library_module: tls/https
+      key_length: variable
+      purpose_usage: HTTPS/TLS
+- id: pqc-js-axios-httpsagent-inventory
+  patterns:
+  - pattern-either:
+    - pattern: 'axios.create({ ..., httpsAgent: $A, ... })'
+    - pattern: 'axios({ ..., httpsAgent: $A, ... })'
+  message: 'CBOM Inventory: Axios custom httpsAgent detected. Review for rejectUnauthorized:false or weak TLS options.'
+  languages:
+  - javascript
+  - typescript
+  severity: INFO
+  metadata:
+    category: Inventory
+    pqc_risk: Transition
+    crypto_agility: Depends
+    algorithm_name: TLS client options
+    algorithm_type: TLS
+    cryptographic_function: Transport Security
+    library: axios/https
+    purpose: HTTPS/TLS
+    recommended_mitigation: Ensure TLS verification is enabled and minVersion is TLS 1.2+.
+    cbom:
+      cryptographic_function: Transport Security
+      algorithm_used: TLS client options
+      algorithm_category: TLS
+      library_module: axios/https
+      key_length: variable
+      purpose_usage: HTTPS/TLS
+
+  # =========================
+  # Global defaults (applied per rule via copy/paste)
+  # =========================
+
+  # -------------------------
+  # HASHING (Findings)
+  # -------------------------
+- id: pqc-php-weak-hash-functions
+  message: "PQC CBOM Finding (Crypto-Agility=No): Weak hash function used (MD5/SHA1)."
+  languages: [php]
+  severity: ERROR
+  pattern-either:
+    - pattern: md5(...)
+    - pattern: sha1(...)
+    - pattern: md5_file(...)
+    - pattern: sha1_file(...)
+    - pattern: hash('md5', ...)
+    - pattern: hash("md5", ...)
+    - pattern: hash('sha1', ...)
+    - pattern: hash("sha1", ...)
+  metadata:
+    tags: [pqc, cbom, weak_crypto, hashing]
+    cbom:
+      cryptographic_function: "Hashing"
+      algorithm_used: "MD5/SHA1"
+      algorithm_category: "Hash"
+      library_module: "PHP Core"
+      key_length: variable
+      purpose_usage: "Hashing"
+
+- id: pqc-js-weak-hash-createhash
+  message: "PQC CBOM Finding (Crypto-Agility=No): Weak hash used in Node.js (MD5/SHA1)."
+  languages: [javascript, typescript]
+  severity: ERROR
+  pattern-either:
+    - pattern: crypto.createHash('md5')
+    - pattern: crypto.createHash("md5")
+    - pattern: crypto.createHash('sha1')
+    - pattern: crypto.createHash("sha1")
+  metadata:
+    tags: [pqc, cbom, weak_crypto, hashing]
+    cbom:
+      cryptographic_function: "Hashing"
+      algorithm_used: "MD5/SHA1"
+      algorithm_category: "Hash"
+      library_module: "Node.js crypto"
+      key_length: variable
+      purpose_usage: "Hashing"
+
+- id: pqc-webcrypto-weak-digest-sha1
+  message: "PQC CBOM Finding (Crypto-Agility=No): WebCrypto digest uses SHA-1."
+  languages: [javascript, typescript]
+  severity: ERROR
+  pattern-either:
+    - pattern: |
+        crypto.subtle.digest('SHA-1', ...)
+    - pattern: |
+        crypto.subtle.digest("SHA-1", ...)
+    - pattern: |
+        crypto.subtle.digest({ name: 'SHA-1' }, ...)
+    - pattern: |
+        crypto.subtle.digest({ name: "SHA-1" }, ...)
+  metadata:
+    tags: [pqc, cbom, weak_crypto, hashing, webcrypto]
+    cbom:
+      cryptographic_function: "Hashing"
+      algorithm_used: "SHA-1"
+      algorithm_category: "Hash"
+      library_module: "WebCrypto"
+      key_length: variable
+      purpose_usage: "Digest/Hashing"
+
+# -------------------------
+# PASSWORD HASHING (Findings)
+# -------------------------
+- id: pqc-php-password-hash-weak-md5-sha1
+  message: "Security Finding: Password hashing appears to use MD5/SHA1 (weak for passwords). Prefer password_hash() with PASSWORD_DEFAULT/Argon2."
+  languages: [php]
+  severity: ERROR
+  patterns:
+    - pattern-either:
+        - pattern: md5($PASS)
+        - pattern: sha1($PASS)
+        - pattern: hash('md5', $PASS)
+        - pattern: hash("md5", $PASS)
+        - pattern: hash('sha1', $PASS)
+        - pattern: hash("sha1", $PASS)
+    - metavariable-pattern:
+        metavariable: $PASS
+        pattern: $X
+  metadata:
+    tags: [pqc, cbom, weak_crypto, password]
+    cbom:
+      cryptographic_function: "Hashing"
+      algorithm_used: "MD5/SHA1"
+      algorithm_category: "Password Hashing (Weak)"
+      library_module: "PHP Core"
+      key_length: variable
+      purpose_usage: "Password Storage/Verification"
+
+# -------------------------
+# SYMMETRIC (Inventory + Findings)
+# -------------------------
+- id: pqc-php-openssl-aes-ecb
+  message: "Security Finding: AES-ECB detected (insecure mode). Prefer AES-GCM or ChaCha20-Poly1305."
+  languages: [php]
+  severity: ERROR
+  pattern-either:
+    - pattern: openssl_encrypt(..., 'AES-128-ECB', ...)
+    - pattern: openssl_encrypt(..., "AES-128-ECB", ...)
+    - pattern: openssl_encrypt(..., 'AES-256-ECB', ...)
+    - pattern: openssl_encrypt(..., "AES-256-ECB", ...)
+    - pattern: openssl_decrypt(..., 'AES-128-ECB', ...)
+    - pattern: openssl_decrypt(..., "AES-128-ECB", ...)
+    - pattern: openssl_decrypt(..., 'AES-256-ECB', ...)
+    - pattern: openssl_decrypt(..., "AES-256-ECB", ...)
+  metadata:
+    tags: [pqc, cbom, weak_crypto, symmetric]
+    cbom:
+      cryptographic_function: "Encryption/Decryption"
+      algorithm_used: "AES-ECB"
+      algorithm_category: "Symmetric (Insecure Mode)"
+      library_module: "PHP OpenSSL"
+      key_length: variable
+      purpose_usage: "Data Encryption/Decryption"
+
+- id: pqc-js-aes-ecb
+  message: "Security Finding: AES-ECB detected in Node.js (insecure mode). Prefer AES-GCM or ChaCha20-Poly1305."
+  languages: [javascript, typescript]
+  severity: ERROR
+  pattern-either:
+    - pattern: crypto.createCipheriv('aes-128-ecb', ...)
+    - pattern: crypto.createCipheriv("aes-128-ecb", ...)
+    - pattern: crypto.createCipheriv('aes-256-ecb', ...)
+    - pattern: crypto.createCipheriv("aes-256-ecb", ...)
+    - pattern: crypto.createDecipheriv('aes-128-ecb', ...)
+    - pattern: crypto.createDecipheriv("aes-128-ecb", ...)
+    - pattern: crypto.createDecipheriv('aes-256-ecb', ...)
+    - pattern: crypto.createDecipheriv("aes-256-ecb", ...)
+  metadata:
+    tags: [pqc, cbom, weak_crypto, symmetric]
+    cbom:
+      cryptographic_function: "Encryption/Decryption"
+      algorithm_used: "AES-ECB"
+      algorithm_category: "Symmetric (Insecure Mode)"
+      library_module: "Node.js crypto"
+      key_length: variable
+      purpose_usage: "Data Encryption/Decryption"
+
+- id: pqc-js-aead-inventory
+  message: "CBOM Inventory: AEAD cipher usage detected (AES-GCM / ChaCha20-Poly1305)."
+  languages: [javascript, typescript]
+  severity: INFO
+  pattern-either:
+    - pattern: crypto.createCipheriv('aes-128-gcm', ...)
+    - pattern: crypto.createCipheriv("aes-128-gcm", ...)
+    - pattern: crypto.createCipheriv('aes-256-gcm', ...)
+    - pattern: crypto.createCipheriv("aes-256-gcm", ...)
+    - pattern: crypto.createCipheriv('chacha20-poly1305', ...)
+    - pattern: crypto.createCipheriv("chacha20-poly1305", ...)
+    - pattern: crypto.createDecipheriv('aes-128-gcm', ...)
+    - pattern: crypto.createDecipheriv("aes-128-gcm", ...)
+    - pattern: crypto.createDecipheriv('aes-256-gcm', ...)
+    - pattern: crypto.createDecipheriv("aes-256-gcm", ...)
+    - pattern: crypto.createDecipheriv('chacha20-poly1305', ...)
+    - pattern: crypto.createDecipheriv("chacha20-poly1305", ...)
+  metadata:
+    tags: [pqc, cbom, inventory, symmetric, aead]
+    cbom:
+      cryptographic_function: "Encryption/Decryption"
+      algorithm_used: "AEAD (AES-GCM/ChaCha20-Poly1305)"
+      algorithm_category: "Symmetric (Modern)"
+      library_module: "Node.js crypto"
+      key_length: variable
+      purpose_usage: "Confidentiality + Integrity"
+
+# -------------------------
+# ASYMMETRIC KEYGEN (Findings + Inventory)
+# -------------------------
+- id: pqc-php-openssl-rsa-weak-keysize
+  message: "Security Finding: RSA key generation with weak modulus size (<2048-bit) detected."
+  languages: [php]
+  severity: ERROR
+  patterns:
+    - pattern: |
+        openssl_pkey_new([
+          ...,
+          "private_key_bits" => $BITS,
+          ...,
+        ])
+    - metavariable-comparison:
+        metavariable: $BITS
+        comparison: $BITS < 2048
+  metadata:
+    tags: [pqc, cbom, weak_crypto, rsa]
+    cbom:
+      cryptographic_function: "Key Generation"
+      algorithm_used: "RSA"
+      algorithm_category: "Asymmetric"
+      library_module: "PHP OpenSSL"
+      key_length: "<2048"
+      purpose_usage: "Key Pair Generation"
+
+- id: pqc-js-rsa-weak-moduluslength
+  message: "Security Finding: RSA key generation with weak modulusLength (<2048-bit) detected."
+  languages: [javascript, typescript]
+  severity: ERROR
+  patterns:
+    - pattern-either:
+        - pattern: |
+            crypto.generateKeyPair('rsa', { ..., modulusLength: $BITS, ... }, ...)
+        - pattern: |
+            crypto.generateKeyPair("rsa", { ..., modulusLength: $BITS, ... }, ...)
+        - pattern: |
+            crypto.generateKeyPairSync('rsa', { ..., modulusLength: $BITS, ... })
+        - pattern: |
+            crypto.generateKeyPairSync("rsa", { ..., modulusLength: $BITS, ... })
+    - metavariable-comparison:
+        metavariable: $BITS
+        comparison: $BITS < 2048
+  metadata:
+    tags: [pqc, cbom, weak_crypto, rsa]
+    cbom:
+      cryptographic_function: "Key Generation"
+      algorithm_used: "RSA"
+      algorithm_category: "Asymmetric"
+      library_module: "Node.js crypto"
+      key_length: "<2048"
+      purpose_usage: "Key Pair Generation"
+
+- id: pqc-js-rsa-keygen-inventory
+  message: "CBOM Inventory (PQC): RSA key generation detected."
+  languages: [javascript, typescript]
+  severity: INFO
+  pattern-either:
+    - pattern: crypto.generateKeyPair('rsa', ...)
+    - pattern: crypto.generateKeyPair("rsa", ...)
+    - pattern: crypto.generateKeyPairSync('rsa', ...)
+    - pattern: crypto.generateKeyPairSync("rsa", ...)
+  metadata:
+    tags: [pqc, cbom, inventory, rsa]
+    cbom:
+      cryptographic_function: "Key Generation"
+      algorithm_used: "RSA"
+      algorithm_category: "Asymmetric"
+      library_module: "Node.js crypto"
+      key_length: variable
+      purpose_usage: "Key Pair Generation"
+
+- id: pqc-webcrypto-asymmetric-inventory
+  message: "CBOM Inventory (PQC): WebCrypto asymmetric algorithm usage detected (RSA/ECDSA/ECDH)."
+  languages: [javascript, typescript]
+  severity: INFO
+  pattern-either:
+    - pattern: |
+        crypto.subtle.generateKey({ name: 'RSA-OAEP', ... }, ...)
+    - pattern: |
+        crypto.subtle.generateKey({ name: "RSA-OAEP", ... }, ...)
+    - pattern: |
+        crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', ... }, ...)
+    - pattern: |
+        crypto.subtle.generateKey({ name: "RSASSA-PKCS1-v1_5", ... }, ...)
+    - pattern: |
+        crypto.subtle.generateKey({ name: 'ECDSA', ... }, ...)
+    - pattern: |
+        crypto.subtle.generateKey({ name: "ECDSA", ... }, ...)
+    - pattern: |
+        crypto.subtle.generateKey({ name: 'ECDH', ... }, ...)
+    - pattern: |
+        crypto.subtle.generateKey({ name: "ECDH", ... }, ...)
+    - pattern: |
+        crypto.subtle.importKey(..., { name: 'RSA-OAEP', ... }, ...)
+    - pattern: |
+        crypto.subtle.importKey(..., { name: "RSA-OAEP", ... }, ...)
+    - pattern: |
+        crypto.subtle.importKey(..., { name: 'RSASSA-PKCS1-v1_5', ... }, ...)
+    - pattern: |
+        crypto.subtle.importKey(..., { name: "RSASSA-PKCS1-v1_5", ... }, ...)
+    - pattern: |
+        crypto.subtle.importKey(..., { name: 'ECDSA', ... }, ...)
+    - pattern: |
+        crypto.subtle.importKey(..., { name: "ECDSA", ... }, ...)
+    - pattern: |
+        crypto.subtle.importKey(..., { name: 'ECDH', ... }, ...)
+    - pattern: |
+        crypto.subtle.importKey(..., { name: "ECDH", ... }, ...)
+  metadata:
+    tags: [pqc, cbom, inventory, webcrypto, asymmetric]
+    cbom:
+      cryptographic_function: "Key Management"
+      algorithm_used: "RSA/ECDSA/ECDH"
+      algorithm_category: "Asymmetric"
+      library_module: "WebCrypto"
+      key_length: variable
+      purpose_usage: "Key Generation/Import"
+
+# -------------------------
+# SIGNATURES (Findings + Inventory)
+# -------------------------
+- id: pqc-js-signature-weak-digest-scheme
+  message: "PQC CBOM Finding (Crypto-Agility=No): [Node.js] Signature configured with SHA1 (RSA-SHA1)."
+  languages: [javascript, typescript]
+  severity: ERROR
+  pattern-either:
+    - pattern: crypto.createSign('RSA-SHA1')
+    - pattern: crypto.createSign("RSA-SHA1")
+    - pattern: crypto.createVerify('RSA-SHA1')
+    - pattern: crypto.createVerify("RSA-SHA1")
+    - pattern: crypto.sign('RSA-SHA1', ...)
+    - pattern: crypto.sign("RSA-SHA1", ...)
+    - pattern: crypto.verify('RSA-SHA1', ...)
+    - pattern: crypto.verify("RSA-SHA1", ...)
+  metadata:
+    tags: [pqc, cbom, weak_crypto, signature]
+    cbom:
+      cryptographic_function: "Signing/Verification"
+      algorithm_used: "RSA-SHA1"
+      algorithm_category: "Asymmetric Signature (Weak Digest)"
+      library_module: "Node.js crypto"
+      key_length: variable
+      purpose_usage: "Digital Signature"
+
+- id: pqc-js-signature-inventory
+  message: "CBOM Inventory (PQC): Node.js signature usage detected (RSA/ECDSA)."
+  languages: [javascript, typescript]
+  severity: INFO
+  pattern-either:
+    - pattern: crypto.createSign(...)
+    - pattern: crypto.createVerify(...)
+    - pattern: crypto.sign(...)
+    - pattern: crypto.verify(...)
+  metadata:
+    tags: [pqc, cbom, inventory, signature]
+    cbom:
+      cryptographic_function: "Signing/Verification"
+      algorithm_used: "RSA/ECDSA (Various)"
+      algorithm_category: "Asymmetric Signature"
+      library_module: "Node.js crypto"
+      key_length: variable
+      purpose_usage: "Digital Signature"
+
+- id: pqc-webcrypto-signature-inventory
+  message: "CBOM Inventory (PQC): WebCrypto signature algorithm usage detected."
+  languages: [javascript, typescript]
+  severity: INFO
+  pattern-either:
+  - pattern: |
+      crypto.subtle.sign({ name: 'RSASSA-PKCS1-v1_5', ... }, ...)
+  - pattern: |
+      crypto.subtle.sign({ name: "RSASSA-PKCS1-v1_5", ... }, ...)
+  - pattern: |
+      crypto.subtle.verify({ name: 'RSASSA-PKCS1-v1_5', ... }, ...)
+  - pattern: |
+      crypto.subtle.verify({ name: "RSASSA-PKCS1-v1_5", ... }, ...)
+  - pattern: |
+      crypto.subtle.sign({ name: 'ECDSA', ... }, ...)
+  - pattern: |
+      crypto.subtle.sign({ name: "ECDSA", ... }, ...)
+  - pattern: |
+      crypto.subtle.verify({ name: 'ECDSA', ... }, ...)
+  - pattern: |
+      crypto.subtle.verify({ name: "ECDSA", ... }, ...)
+  metadata:
+    tags: [pqc, cbom, inventory, signature, webcrypto]
+    cbom:
+      cryptographic_function: "Signing/Verification"
+      algorithm_used: "RSASSA/ECDSA"
+      algorithm_category: "Asymmetric Signature"
+      library_module: "WebCrypto"
+      key_length: variable
+      purpose_usage: "Digital Signature"
+
+# -------------------------
+# RSA PADDING (Hotspot)
+# -------------------------
+- id: pqc-js-rsa-legacy-padding
+  message: "CBOM Inventory (PQC Hotspot): [Node.js] RSA PKCS#1 v1.5 padding in use. Prefer OAEP where possible."
+  languages: [javascript, typescript]
+  severity: WARNING
+  pattern-either:
+    - pattern: |
+        crypto.publicEncrypt({..., padding: crypto.constants.RSA_PKCS1_PADDING, ...}, ...)
+    - pattern: |
+        crypto.privateDecrypt({..., padding: crypto.constants.RSA_PKCS1_PADDING, ...}, ...)
+    - pattern: |
+        crypto.publicEncrypt({..., padding: constants.RSA_PKCS1_PADDING, ...}, ...)
+    - pattern: |
+        crypto.privateDecrypt({..., padding: constants.RSA_PKCS1_PADDING, ...}, ...)
+  metadata:
+    tags: [pqc, cbom, hotspot, rsa, padding]
+    cbom:
+      cryptographic_function: "Encryption/Decryption"
+      algorithm_used: "RSA (PKCS#1 v1.5)"
+      algorithm_category: "Asymmetric (Padding Hotspot)"
+      library_module: "Node.js crypto"
+      key_length: variable
+      purpose_usage: "Asymmetric Encryption/Decryption"
+
+# -------------------------
+# DSA / DH (Inventory)
+# -------------------------
+- id: pqc-js-dsa-inventory
+  message: "CBOM Inventory (PQC): DSA usage detected (legacy asymmetric algorithm)."
+  languages: [javascript, typescript]
+  severity: WARNING
+  pattern-either:
+    - pattern: crypto.generateKeyPair('dsa', ...)
+    - pattern: crypto.generateKeyPair("dsa", ...)
+    - pattern: crypto.generateKeyPairSync('dsa', ...)
+    - pattern: crypto.generateKeyPairSync("dsa", ...)
+  metadata:
+    tags: [pqc, cbom, inventory, dsa]
+    cbom:
+      cryptographic_function: "Key Generation"
+      algorithm_used: "DSA"
+      algorithm_category: "Asymmetric (Legacy)"
+      library_module: "Node.js crypto"
+      key_length: variable
+      purpose_usage: "Key Pair Generation"
+
+- id: pqc-js-dh-inventory
+  message: "CBOM Inventory (PQC): Diffie-Hellman (DH) usage detected."
+  languages: [javascript, typescript]
+  severity: INFO
+  pattern-either:
+    - pattern: crypto.createDiffieHellman(...)
+    - pattern: crypto.getDiffieHellman(...)
+  metadata:
+    tags: [pqc, cbom, inventory, dh, key_exchange]
+    cbom:
+      cryptographic_function: "Key Exchange"
+      algorithm_used: "DH"
+      algorithm_category: "Asymmetric Key Exchange"
+      library_module: "Node.js crypto"
+      key_length: variable
+      purpose_usage: "Key Agreement"
+
+# -------------------------
+# TLS / CERT VALIDATION (Findings)
+# -------------------------
+- id: pqc-js-tls-rejectunauthorized-false
+  message: "Security Finding: TLS certificate verification disabled (rejectUnauthorized: false)."
+  languages: [javascript, typescript]
+  severity: ERROR
+  pattern-either:
+    - pattern: |
+        https.request({ ..., rejectUnauthorized: false, ... }, ...)
+    - pattern: |
+        tls.connect({ ..., rejectUnauthorized: false, ... }, ...)
+    - pattern: |
+        new https.Agent({ ..., rejectUnauthorized: false, ... })
+    - pattern: |
+        new tls.TLSSocket(..., { ..., rejectUnauthorized: false, ... })
+  metadata:
+    tags: [pqc, cbom, weak_crypto, tls]
+    cbom:
+      cryptographic_function: "Secure Channel"
+      algorithm_used: "TLS (Verification Disabled)"
+      algorithm_category: "TLS Misconfiguration"
+      library_module: "Node.js https/tls"
+      key_length: variable
+      purpose_usage: "Transport Security"
+
+- id: pqc-php-tls-verify-disabled
+  message: "Security Finding: TLS/SSL peer verification disabled in PHP stream/cURL context."
+  languages: [php]
+  severity: ERROR
+  pattern-either:
+    - pattern: |
+        stream_context_create([
+          ...,
+          'ssl' => [
+            ...,
+            'verify_peer' => false,
+            ...
+          ],
+          ...
+        ])
+    - pattern: |
+        stream_context_create([
+          ...,
+          'ssl' => [
+            ...,
+            'verify_peer_name' => false,
+            ...
+          ],
+          ...
+        ])
+    - pattern: curl_setopt($CURL, CURLOPT_SSL_VERIFYPEER, false)
+    - pattern: curl_setopt($CURL, CURLOPT_SSL_VERIFYHOST, 0)
+  metadata:
+    tags: [pqc, cbom, weak_crypto, tls]
+    cbom:
+      cryptographic_function: "Secure Channel"
+      algorithm_used: "TLS (Verification Disabled)"
+      algorithm_category: "TLS Misconfiguration"
+      library_module: "PHP cURL/Streams"
+      key_length: variable
+      purpose_usage: "Transport Security"
+
+# -------------------------
+# JWT / JOSE (Inventory + Findings)
+# -------------------------
+- id: pqc-js-jwt-rs-es-alg-inventory
+  message: "CBOM Inventory (PQC): JWT/JWS uses RSA/ECDSA algorithm (RS*/ES*)."
+  languages: [javascript, typescript]
+  severity: INFO
+  pattern-either:
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: 'RS256', ... })
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: "RS256", ... })
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: 'RS384', ... })
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: "RS384", ... })
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: 'RS512', ... })
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: "RS512", ... })
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: 'ES256', ... })
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: "ES256", ... })
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: 'ES384', ... })
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: "ES384", ... })
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: 'ES512', ... })
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: "ES512", ... })
+    - pattern: |
+        jwt.verify(..., { ..., algorithms: [...], ... })
+  metadata:
+    tags: [pqc, cbom, inventory, jwt, jose]
+    cbom:
+      cryptographic_function: "Signing/Verification"
+      algorithm_used: "JWT (RS*/ES*)"
+      algorithm_category: "Asymmetric Signature"
+      library_module: "jsonwebtoken (or compatible)"
+      key_length: variable
+      purpose_usage: "Token Signing/Verification"
+
+- id: pqc-js-jwt-alg-none-finding
+  message: "Security Finding: JWT algorithm 'none' detected (critical misconfiguration)."
+  languages: [javascript, typescript]
+  severity: ERROR
+  pattern-either:
+    - pattern: |
+        jwt.verify(..., { ..., algorithms: ['none'], ... })
+    - pattern: |
+        jwt.verify(..., { ..., algorithms: ["none"], ... })
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: 'none', ... })
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: "none", ... })
+  metadata:
+    tags: [pqc, cbom, jwt, weak_crypto, critical]
+    cbom:
+      cryptographic_function: "Signing/Verification"
+      algorithm_used: "JWT (none)"
+      algorithm_category: "Insecure Configuration"
+      library_module: "jsonwebtoken (or compatible)"
+      key_length: variable
+      purpose_usage: "Token Signing/Verification"
+
+# -------------------------
+# KEY / CERT FILE HANDLING (Inventory)
+# -------------------------
+- id: pqc-js-key-material-loading
+  message: "CBOM Inventory (PQC): Key material appears to be loaded/handled (PEM/DER)."
+  languages: [javascript, typescript]
+  severity: INFO
+  pattern-either:
+    - pattern: crypto.createPrivateKey(...)
+    - pattern: crypto.createPublicKey(...)
+    - pattern: crypto.createSecretKey(...)
+    - pattern: fs.readFileSync(..., 'utf8')
+    - pattern: fs.readFileSync(..., "utf8")
+  metadata:
+    tags: [pqc, cbom, inventory, key_management]
+    cbom:
+      cryptographic_function: "Key Management"
+      algorithm_used: "Key Material (PEM/DER)"
+      algorithm_category: "Key Handling"
+      library_module: "Node.js crypto/fs"
+      key_length: variable
+      purpose_usage: "Load/Parse Keys"
+
+- id: pqc-php-key-material-loading
+  message: "CBOM Inventory (PQC): PHP OpenSSL key/cert handling detected."
+  languages: [php]
+  severity: INFO
+  pattern-either:
+    - pattern: openssl_pkey_get_private(...)
+    - pattern: openssl_pkey_get_public(...)
+    - pattern: openssl_x509_read(...)
+    - pattern: openssl_x509_parse(...)
+  metadata:
+    tags: [pqc, cbom, inventory, key_management]
+    cbom:
+      cryptographic_function: "Key Management"
+      algorithm_used: "X.509 / Key Handling"
+      algorithm_category: "PKI"
+      library_module: "PHP OpenSSL"
+      key_length: variable
+      purpose_usage: "Load/Parse Keys/Certificates"
+
+# ==========================================================
+# JavaScript / TypeScript (Node + WebCrypto)
+# ==========================================================
+
+- id: pqc-js-weak-hash
+  message: "PQC CBOM Finding (Crypto-Agility=No): Weak hash used (MD5/SHA1) in Node.js/WebCrypto."
+  languages: [javascript, typescript]
+  severity: ERROR
+  pattern-either:
+    - pattern: |
+        crypto.createHash('md5')
+    - pattern: |
+        crypto.createHash("md5")
+    - pattern: |
+        crypto.createHash('sha1')
+    - pattern: |
+        crypto.createHash("sha1")
+    - pattern: |
+        crypto.subtle.digest('SHA-1', ...)
+    - pattern: |
+        crypto.subtle.digest("SHA-1", ...)
+    - pattern: |
+        crypto.subtle.digest({ name: 'SHA-1' }, ...)
+    - pattern: |
+        crypto.subtle.digest({ name: "SHA-1" }, ...)
+  paths:
+    exclude: [vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+  metadata:
+    tags: [pqc, cbom, weak_crypto, hashing, js]
+    cbom:
+      cryptographic_function: "Hashing"
+      algorithm_used: "MD5/SHA1"
+      algorithm_category: "Hash"
+      library_module: "Node.js crypto / WebCrypto"
+      key_length: variable
+      purpose_usage: "Hashing"
+
+- id: pqc-js-rsa-keygen-weak
+  message: "Security Finding: RSA key generation uses weak modulus length (<2048)."
+  languages: [javascript, typescript]
+  severity: ERROR
+  patterns:
+    - pattern-either:
+        - pattern: |
+            crypto.generateKeyPair('rsa', { ..., modulusLength: $BITS, ... }, ...)
+        - pattern: |
+            crypto.generateKeyPair("rsa", { ..., modulusLength: $BITS, ... }, ...)
+        - pattern: |
+            crypto.generateKeyPairSync('rsa', { ..., modulusLength: $BITS, ... }, ...)
+        - pattern: |
+            crypto.generateKeyPairSync("rsa", { ..., modulusLength: $BITS, ... }, ...)
+    - metavariable-comparison:
+        metavariable: $BITS
+        comparison: $BITS < 2048
+  paths:
+    exclude: [vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+  metadata:
+    tags: [pqc, cbom, weak_crypto, rsa, js]
+    cbom:
+      cryptographic_function: "Key Generation"
+      algorithm_used: "RSA"
+      algorithm_category: "Asymmetric"
+      library_module: "Node.js crypto"
+      key_length: "<2048"
+      purpose_usage: "Key Pair Generation"
+
+- id: pqc-js-webcrypto-asymmetric-inventory
+  message: "CBOM Inventory (PQC): WebCrypto asymmetric usage detected (RSA/ECDSA/ECDH)."
+  languages: [javascript, typescript]
+  severity: INFO
+  pattern-either:
+    - pattern: |
+        crypto.subtle.generateKey({ name: 'RSA-OAEP', ... }, ...)
+    - pattern: |
+        crypto.subtle.generateKey({ name: "RSA-OAEP", ... }, ...)
+    - pattern: |
+        crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', ... }, ...)
+    - pattern: |
+        crypto.subtle.generateKey({ name: "RSASSA-PKCS1-v1_5", ... }, ...)
+    - pattern: |
+        crypto.subtle.generateKey({ name: 'ECDSA', ... }, ...)
+    - pattern: |
+        crypto.subtle.generateKey({ name: "ECDSA", ... }, ...)
+    - pattern: |
+        crypto.subtle.generateKey({ name: 'ECDH', ... }, ...)
+    - pattern: |
+        crypto.subtle.generateKey({ name: "ECDH", ... }, ...)
+    - pattern: |
+        crypto.subtle.importKey(..., { name: 'RSA-OAEP', ... }, ...)
+    - pattern: |
+        crypto.subtle.importKey(..., { name: "RSA-OAEP", ... }, ...)
+    - pattern: |
+        crypto.subtle.importKey(..., { name: 'RSASSA-PKCS1-v1_5', ... }, ...)
+    - pattern: |
+        crypto.subtle.importKey(..., { name: "RSASSA-PKCS1-v1_5", ... }, ...)
+    - pattern: |
+        crypto.subtle.importKey(..., { name: 'ECDSA', ... }, ...)
+    - pattern: |
+        crypto.subtle.importKey(..., { name: "ECDSA", ... }, ...)
+    - pattern: |
+        crypto.subtle.importKey(..., { name: 'ECDH', ... }, ...)
+    - pattern: |
+        crypto.subtle.importKey(..., { name: "ECDH", ... }, ...)
+  paths:
+    exclude: [vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+  metadata:
+    tags: [pqc, cbom, inventory, asymmetric, webcrypto, js]
+    cbom:
+      cryptographic_function: "Key Management"
+      algorithm_used: "RSA/ECDSA/ECDH"
+      algorithm_category: "Asymmetric"
+      library_module: "WebCrypto"
+      key_length: variable
+      purpose_usage: "Key Generation/Import"
+
+- id: pqc-js-tls-verify-disabled
+  message: "Security Finding: TLS certificate verification disabled (rejectUnauthorized: false)."
+  languages: [javascript, typescript]
+  severity: ERROR
+  pattern-either:
+    - pattern: |
+        https.request({ ..., rejectUnauthorized: false, ... }, ...)
+    - pattern: |
+        tls.connect({ ..., rejectUnauthorized: false, ... }, ...)
+    - pattern: |
+        new https.Agent({ ..., rejectUnauthorized: false, ... })
+  paths:
+    exclude: [vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+  metadata:
+    tags: [pqc, cbom, tls, weak_crypto, js]
+    cbom:
+      cryptographic_function: "Secure Channel"
+      algorithm_used: "TLS (Verification Disabled)"
+      algorithm_category: "TLS Misconfiguration"
+      library_module: "Node.js https/tls"
+      key_length: variable
+      purpose_usage: "Transport Security"
+
+- id: pqc-js-jwt-rs-es-inventory
+  message: "CBOM Inventory (PQC): JWT/JWS uses RSA/ECDSA algorithms (RS*/ES*)."
+  languages: [javascript, typescript]
+  severity: INFO
+  pattern-either:
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: 'RS256', ... })
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: "RS256", ... })
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: 'ES256', ... })
+    - pattern: |
+        jwt.sign(..., { ..., algorithm: "ES256", ... })
+    - pattern: |
+        jwt.verify(..., { ..., algorithms: [...], ... })
+  paths:
+    exclude: [vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+  metadata:
+    tags: [pqc, cbom, inventory, jwt, js]
+    cbom:
+      cryptographic_function: "Signing/Verification"
+      algorithm_used: "JWT (RS*/ES*)"
+      algorithm_category: "Asymmetric Signature"
+      library_module: "jsonwebtoken (or compatible)"
+      key_length: variable
+      purpose_usage: "Token Signing/Verification"
+
+# ==========================================================
+# Python
+# ==========================================================
+
+- id: pqc-py-weak-hash
+  message: "PQC CBOM Finding (Crypto-Agility=No): Weak hash used (MD5/SHA1) in Python."
+  languages: [python]
+  severity: ERROR
+  pattern-either:
+    - pattern: |
+        hashlib.md5(...)
+    - pattern: |
+        hashlib.sha1(...)
+    - pattern: |
+        hashlib.new('md5', ...)
+    - pattern: |
+        hashlib.new("md5", ...)
+    - pattern: |
+        hashlib.new('sha1', ...)
+    - pattern: |
+        hashlib.new("sha1", ...)
+  paths:
+    exclude: [venv/, .venv/, vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+  metadata:
+    tags: [pqc, cbom, weak_crypto, hashing, python]
+    cbom:
+      cryptographic_function: "Hashing"
+      algorithm_used: "MD5/SHA1"
+      algorithm_category: "Hash"
+      library_module: "hashlib"
+      key_length: variable
+      purpose_usage: "Hashing"
+
+- id: pqc-py-rsa-keygen-inventory
+  message: "CBOM Inventory (PQC): RSA key generation detected (PyCA cryptography)."
+  languages: [python]
+  severity: INFO
+  pattern-either:
+    - pattern: |
+        rsa.generate_private_key(...)
+    - pattern: |
+        cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(...)
+  paths:
+    exclude: [venv/, .venv/, vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+  metadata:
+    tags: [pqc, cbom, inventory, rsa, python]
+    cbom:
+      cryptographic_function: "Key Generation"
+      algorithm_used: "RSA"
+      algorithm_category: "Asymmetric"
+      library_module: "PyCA cryptography"
+      key_length: variable
+      purpose_usage: "Key Pair Generation"
+
+- id: pqc-py-rsa-keygen-weak
+  message: "Security Finding: RSA key generation uses weak key size (<2048) in Python (PyCA cryptography)."
+  languages: [python]
+  severity: ERROR
+  patterns:
+    - pattern-either:
+        - pattern: |
+            rsa.generate_private_key(public_exponent=..., key_size=$BITS, ...)
+        - pattern: |
+            cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(public_exponent=..., key_size=$BITS, ...)
+    - metavariable-comparison:
+        metavariable: $BITS
+        comparison: $BITS < 2048
+  paths:
+    exclude: [venv/, .venv/, vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+  metadata:
+    tags: [pqc, cbom, weak_crypto, rsa, python]
+    cbom:
+      cryptographic_function: "Key Generation"
+      algorithm_used: "RSA"
+      algorithm_category: "Asymmetric"
+      library_module: "PyCA cryptography"
+      key_length: "<2048"
+      purpose_usage: "Key Pair Generation"
+
+- id: pqc-py-tls-verify-disabled
+  message: "Security Finding: TLS certificate verification disabled in Python HTTP client."
+  languages: [python]
+  severity: ERROR
+  pattern-either:
+    - pattern: |
+        requests.get(..., verify=False, ...)
+    - pattern: |
+        requests.post(..., verify=False, ...)
+    - pattern: |
+        requests.request(..., verify=False, ...)
+    - pattern: |
+        urllib3.disable_warnings(...)
+  paths:
+    exclude: [venv/, .venv/, vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+  metadata:
+    tags: [pqc, cbom, tls, weak_crypto, python]
+    cbom:
+      cryptographic_function: "Secure Channel"
+      algorithm_used: "TLS (Verification Disabled)"
+      algorithm_category: "TLS Misconfiguration"
+      library_module: "requests/urllib3"
+      key_length: variable
+      purpose_usage: "Transport Security"
+
+# ==========================================================
+# Java
+# ==========================================================
+
+- id: pqc-java-weak-hash
+  message: "PQC CBOM Finding (Crypto-Agility=No): Weak hash used (MD5/SHA-1) in Java."
+  languages: [java]
+  severity: ERROR
+  pattern-either:
+    - pattern: |
+        MessageDigest.getInstance("MD5")
+    - pattern: |
+        MessageDigest.getInstance("SHA-1")
+    - pattern: |
+        MessageDigest.getInstance("SHA1")
+  paths:
+    exclude: [target/, build/, dist/, out/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+  metadata:
+    tags: [pqc, cbom, weak_crypto, hashing, java]
+    cbom:
+      cryptographic_function: "Hashing"
+      algorithm_used: "MD5/SHA1"
+      algorithm_category: "Hash"
+      library_module: "java.security.MessageDigest"
+      key_length: variable
+      purpose_usage: "Hashing"
+
+- id: pqc-java-rsa-keygen-inventory
+  message: "CBOM Inventory (PQC): RSA keypair generation detected in Java."
+  languages: [java]
+  severity: INFO
+  pattern-either:
+    - pattern: |
+        KeyPairGenerator.getInstance("RSA")
+    - pattern: |
+        KeyPairGenerator.getInstance("EC")
+    - pattern: |
+        Signature.getInstance("SHA256withRSA")
+    - pattern: |
+        Signature.getInstance("SHA256withECDSA")
+  paths:
+    exclude: [target/, build/, dist/, out/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+  metadata:
+    tags: [pqc, cbom, inventory, asymmetric, java]
+    cbom:
+      cryptographic_function: "Signing/Verification"
+      algorithm_used: "RSA/ECDSA (Various)"
+      algorithm_category: "Asymmetric"
+      library_module: "java.security"
+      key_length: variable
+      purpose_usage: "KeyGen/Signature"
+
+- id: pqc-java-tls-verify-disabled
+  message: "Security Finding: Java TLS verification disabled via permissive TrustManager / HostnameVerifier."
+  languages: [java]
+  severity: ERROR
+  pattern-either:
+    - pattern: |
+        new X509TrustManager() { ... }
+    - pattern: |
+        (hostname, session) -> true
+    - pattern: |
+        HttpsURLConnection.setDefaultHostnameVerifier(...)
+  paths:
+    exclude: [target/, build/, dist/, out/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+  metadata:
+    tags: [pqc, cbom, tls, weak_crypto, java]
+    cbom:
+      cryptographic_function: "Secure Channel"
+      algorithm_used: "TLS (Verification Disabled)"
+      algorithm_category: "TLS Misconfiguration"
+      library_module: "javax.net.ssl"
+      key_length: variable
+      purpose_usage: "Transport Security"
+
+# ==========================================================
+# Go
+# ==========================================================
+
+- id: pqc-go-weak-hash
+  message: "PQC CBOM Finding (Crypto-Agility=No): Weak hash used (MD5/SHA1) in Go."
+  languages: [go]
+  severity: ERROR
+  pattern-either:
+    - pattern: |
+        md5.New()
+    - pattern: |
+        sha1.New()
+    - pattern: |
+        md5.Sum(...)
+    - pattern: |
+        sha1.Sum(...)
+  paths:
+    exclude: [vendor/, dist/, build/, out/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+  metadata:
+    tags: [pqc, cbom, weak_crypto, hashing, go]
+    cbom:
+      cryptographic_function: "Hashing"
+      algorithm_used: "MD5/SHA1"
+      algorithm_category: "Hash"
+      library_module: "crypto/md5, crypto/sha1"
+      key_length: variable
+      purpose_usage: "Hashing"
+
+- id: pqc-go-tls-verify-disabled
+  message: "Security Finding: Go TLS certificate verification disabled (InsecureSkipVerify: true)."
+  languages: [go]
+  severity: ERROR
+  pattern-either:
+    - pattern: |
+        tls.Config{ ..., InsecureSkipVerify: true, ... }
+    - pattern: |
+        &tls.Config{ ..., InsecureSkipVerify: true, ... }
+  paths:
+    exclude: [vendor/, dist/, build/, out/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+  metadata:
+    tags: [pqc, cbom, tls, weak_crypto, go]
+    cbom:
+      cryptographic_function: "Secure Channel"
+      algorithm_used: "TLS (Verification Disabled)"
+      algorithm_category: "TLS Misconfiguration"
+      library_module: "crypto/tls"
+      key_length: variable
+      purpose_usage: "Transport Security"
+
+- id: pqc-go-rsa-keygen-inventory
+  message: "CBOM Inventory (PQC): RSA key generation detected in Go."
+  languages: [go]
+  severity: INFO
+  pattern-either:
+    - pattern: |
+        rsa.GenerateKey(...)
+    - pattern: |
+        rsa.GenerateMultiPrimeKey(...)
+  paths:
+    exclude: [vendor/, dist/, build/, out/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+  metadata:
+    tags: [pqc, cbom, inventory, rsa, go]
+    cbom:
+      cryptographic_function: "Key Generation"
+      algorithm_used: "RSA"
+      algorithm_category: "Asymmetric"
+      library_module: "crypto/rsa"
+      key_length: variable
+      purpose_usage: "Key Pair Generation"
+
+- id: pqc-go-rsa-keygen-weak
+  message: "Security Finding: Go RSA key generation uses weak key size (<2048)."
+  languages: [go]
+  severity: ERROR
+  patterns:
+    - pattern-either:
+        - pattern: |
+            rsa.GenerateKey(..., $BITS)
+        - pattern: |
+            rsa.GenerateMultiPrimeKey(..., $BITS)
+    - metavariable-comparison:
+        metavariable: $BITS
+        comparison: $BITS < 2048
+  paths:
+    exclude: [vendor/, dist/, build/, out/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+  metadata:
+    tags: [pqc, cbom, weak_crypto, rsa, go]
+    cbom:
+      cryptographic_function: "Key Generation"
+      algorithm_used: "RSA"
+      algorithm_category: "Asymmetric"
+      library_module: "crypto/rsa"
+      key_length: "<2048"
+      purpose_usage: "Key Pair Generation"
+
+# ==========================================================
+# C# (.NET)
+# ==========================================================
+
+- id: pqc-csharp-weak-hash
+  message: "PQC CBOM Finding (Crypto-Agility=No): Weak hash used (MD5/SHA1) in .NET."
+  languages: [csharp]
+  severity: ERROR
+  pattern-either:
+    - pattern: |
+        MD5.Create()
+    - pattern: |
+        SHA1.Create()
+    - pattern: |
+        new MD5CryptoServiceProvider(...)
+    - pattern: |
+        new SHA1CryptoServiceProvider(...)
+  metadata:
+    tags: [pqc, cbom, weak_crypto, hashing, dotnet]
+    cbom:
+      cryptographic_function: "Hashing"
+      algorithm_used: "MD5/SHA1"
+      algorithm_category: "Hash"
+      library_module: "System.Security.Cryptography"
+      key_length: variable
+      purpose_usage: "Hashing"
+
+- id: pqc-csharp-tls-verify-disabled
+  message: "Security Finding: TLS certificate validation disabled in .NET."
+  languages: [csharp]
+  severity: ERROR
+  pattern-either:
+    # ServicePointManager callback disabled (common)
+    - pattern: |
+        ServicePointManager.ServerCertificateValidationCallback = ...
+    - pattern: |
+        ServicePointManager.ServerCertificateValidationCallback += ...
+
+    # HttpClientHandler set in an object initializer (must include `new`)
+    - pattern: |
+        new HttpClientHandler { ..., ServerCertificateCustomValidationCallback = ..., ... }
+
+    # HttpClientHandler set via assignment
+    - pattern: |
+        $H.ServerCertificateCustomValidationCallback = ...
+
+    # Built-in "accept any cert" helper (very common in .NET)
+    - pattern: |
+        HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+  metadata:
+    tags: [pqc, cbom, tls, weak_crypto, dotnet]
+    cbom:
+      cryptographic_function: "Secure Channel"
+      algorithm_used: "TLS (Verification Disabled)"
+      algorithm_category: "TLS Misconfiguration"
+      library_module: ".NET HttpClient / ServicePointManager"
+      key_length: variable
+      purpose_usage: "Transport Security"
+
+- id: pqc-csharp-rsa-inventory
+  message: "CBOM Inventory (PQC): RSA usage detected in .NET."
+  languages: [csharp]
+  severity: INFO
+  pattern-either:
+    - pattern: |
+        RSA.Create()
+    - pattern: |
+        RSACryptoServiceProvider(...)
+    - pattern: |
+        new RSACryptoServiceProvider(...)
+  metadata:
+    tags: [pqc, cbom, inventory, rsa, dotnet]
+    cbom:
+      cryptographic_function: "Key Management"
+      algorithm_used: "RSA"
+      algorithm_category: "Asymmetric"
+      library_module: "System.Security.Cryptography"
+      key_length: variable
+      purpose_usage: "KeyGen/Encrypt/Sign"
+
+- id: pqc-csharp-jwt-rs-es-inventory
+  message: "CBOM Inventory (PQC): JWT/JWS uses RSA/ECDSA algorithms (RS*/ES*) in .NET."
+  languages: [csharp]
+  severity: INFO
+  pattern-either:
+    - pattern: |
+        SecurityAlgorithms.RsaSha256
+    - pattern: |
+        SecurityAlgorithms.EcdsaSha256
+    - pattern: |
+        JwtSecurityTokenHandler(...)
+  metadata:
+    tags: [pqc, cbom, inventory, jwt, dotnet]
+    cbom:
+      cryptographic_function: "Signing/Verification"
+      algorithm_used: "JWT (RS*/ES*)"
+      algorithm_category: "Asymmetric Signature"
+      library_module: "Microsoft.IdentityModel.Tokens / System.IdentityModel.Tokens.Jwt"
+      key_length: variable
+      purpose_usage: "Token Signing/Verification"

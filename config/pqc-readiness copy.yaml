@@ -1,0 +1,1734 @@
+rules:
+- id: catalog.crypto.protocols
+  languages:
+  - generic
+  severity: INFO
+  message: Crypto/TLS catalog token detected (protocol matrix entry present). Use metadata.crypto_catalog for full mapping.
+  pattern-regex: (?i)\b(3DES|3DES_EDE_CBC|AES|AES\-128|AES\-192|AES\-256|AES\-CCM|AES\-CCMP|AES\-CTR|AES\-GCM|AES128|AES256|AES256_CTR|AES_128_CBC|AES_256_CBC|CHACHA20_POLY1305|Camellia|Camellia\-128|Camellia\-192|Camellia\-256|Certs/PSK|ChaCha20|ChaCha20\-Poly1305|ChaCha20\-poly1305|Curve25519|DES|DES3\-CBC|DES3\-KD|DES_CBC|DSA|ECDSA|ECDSA\-SHA256|ES256|Ed25519|EdDSA|ElGamal|HMAC|HMAC\-SHA1|HMAC\-SHA1/2|HMAC\-SHA256|HMAC/Poly1305|HMAC_MD5|HMAC_SHA1|HMAC_SHA1_96|HMAC_SHA256|HS256|MD5|PSK|Passphrase/PSK|Poly1305|RC4|RC4_128|RS256|RSA/ECDSA|RSAES\-PKCS1\-v1_5|RSASSA\-PKCS1\-v1_5|SAE|SHA\-1|SHA\-2|SHA\-256|SHA\-3|SHA\-384|SHA\-512|TLS_AES_128_GCM_SHA256|TLS_CHACHA20_POLY1305_SHA256|TLS_DHE_RSA_WITH_AES_128_GCM_SHA256|TLS_DH_RSA_WITH_AES_128_CBC_SHA|TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256|TLS_RSA_WITH_AES_256_GCM_SHA384|Twofish|Twofish\-256|X25519|ecdsa_secp256r1_sha256|md5WithRSAEncryption|rsa_pss_rsae_sha256|secp256k1)\b
+  metadata:
+    category: crypto-catalog
+    purpose: inventory
+    crypto_catalog:
+      TLS 1.2:
+        key_exchange:
+        - name: RSA
+          type: Asymmetric
+          example: TLS_RSA_WITH_AES_256_GCM_SHA384
+          key_bits: 2048–4096
+          ref: https://datatracker.ietf.org/doc/html/rfc5246
+        - name: DH
+          type: Asymmetric
+          example: TLS_DH_RSA_WITH_AES_128_CBC_SHA
+          key_bits: '2048'
+          ref: ''
+        - name: ECDHE
+          type: Asymmetric
+          example: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+          key_bits: '256'
+          ref: ''
+        - name: DHE
+          type: Asymmetric
+          example: TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+          key_bits: '2048'
+          ref: ''
+        encryption:
+        - name: AES
+          type: Symmetric
+          examples:
+          - AES_128_CBC
+          - AES_256_CBC
+          key_bits: 128–256
+          ref: ''
+        - name: RC4
+          type: Symmetric
+          examples:
+          - RC4_128
+          key_bits: '128'
+          ref: ''
+        - name: 3DES
+          type: Symmetric
+          examples:
+          - 3DES_EDE_CBC
+          key_bits: '168'
+          ref: ''
+        - name: ChaCha20
+          type: Symmetric
+          examples:
+          - ChaCha20-Poly1305
+          key_bits: '256'
+          ref: ''
+        mac:
+        - name: MD5
+          type: Symmetric
+          examples:
+          - HMAC_MD5
+          key_bits: '128'
+          ref: ''
+        - name: HMAC-SHA1
+          type: Symmetric
+          examples:
+          - HMAC_SHA1
+          key_bits: '160'
+          ref: ''
+        - name: HMAC-SHA256
+          type: Symmetric
+          examples:
+          - HMAC_SHA256
+          key_bits: '256'
+          ref: ''
+        signatures:
+        - name: RSA
+          type: Asymmetric
+          example: RSA-SHA256
+          key_bits: 2048–4096
+          ref: https://datatracker.ietf.org/doc/html/rfc5246
+        - name: ECDSA
+          type: Asymmetric
+          example: ECDSA-SHA256
+          key_bits: '256'
+          ref: https://datatracker.ietf.org/doc/html/rfc5246
+        authentication:
+        - name: X.509 Certs
+          type: Asymmetric
+          example: Certificate field
+          key_bits: Varies
+          ref: https://datatracker.ietf.org/doc/html/rfc5280
+        cipher_suites:
+        - TLS_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_DH_RSA_WITH_AES_128_CBC_SHA
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+      TLS 1.3:
+        key_exchange:
+        - name: ECDHE
+          type: Asymmetric
+          curves:
+          - P-256
+          - P-384
+          - P-521
+          example: TLS_AES_128_GCM_SHA256
+          key_bits: '256'
+          ref: ''
+        encryption:
+        - name: AES-GCM
+          type: Symmetric
+          examples:
+          - TLS_AES_128_GCM_SHA256
+          key_bits: 128–256
+          ref: https://datatracker.ietf.org/doc/html/rfc8446#section-6.3
+        - name: ChaCha20-Poly1305
+          type: Symmetric
+          examples:
+          - TLS_CHACHA20_POLY1305_SHA256
+          key_bits: '256'
+          ref: https://datatracker.ietf.org/doc/html/rfc8439
+        mac:
+        - name: Poly1305 (with ChaCha20)
+          type: Symmetric
+          examples:
+          - CHACHA20_POLY1305
+          key_bits: '256'
+          ref: ''
+        signatures:
+        - name: RSA-PSS
+          type: Asymmetric
+          hashes:
+          - SHA-256
+          - SHA-384
+          - SHA-512
+          example: rsa_pss_rsae_sha256
+          key_bits: 2048–4096
+          ref: ''
+        - name: ECDSA
+          type: Asymmetric
+          hashes:
+          - SHA-256
+          - SHA-384
+          - SHA-512
+          example: ecdsa_secp256r1_sha256
+          key_bits: '256'
+          ref: ''
+        authentication:
+        - name: X.509 Certs
+          type: Asymmetric
+          example: subjectPublicKeyInfo
+          key_bits: Varies
+          ref: ''
+        cipher_suites:
+        - TLS_AES_128_GCM_SHA256
+        - TLS_CHACHA20_POLY1305_SHA256
+      IPSec:
+        key_exchange:
+        - name: DH/ECDH
+          type: Asymmetric
+          example: 'ESP/AH headers: Encryption Algorithm, Integrity Algorithm, DH Group'
+          key_bits: '2048'
+          ref: ''
+        encryption:
+        - name: AES
+          type: Symmetric
+          example: 'ESP/AH headers: Encryption Algorithm, Integrity Algorithm, DH Group'
+          key_bits: 128–256
+          ref: ''
+        - name: 3DES
+          type: Symmetric
+          example: 'ESP/AH headers: Encryption Algorithm, Integrity Algorithm, DH Group'
+          key_bits: '168'
+          ref: https://datatracker.ietf.org/doc/html/rfc6071
+        integrity:
+        - name: HMAC-SHA1/2
+          type: Symmetric
+          example: 'ESP/AH headers: Encryption Algorithm, Integrity Algorithm, DH Group'
+          key_bits: Depends on hash
+          ref: ''
+        authentication:
+        - name: RSA certs
+          type: Asymmetric
+          example: 'ESP/AH headers: Encryption Algorithm, Integrity Algorithm, DH Group'
+          key_bits: 2048–4096
+          ref: ''
+        - name: PSK
+          type: Symmetric
+          example: 'ESP/AH headers: Encryption Algorithm, Integrity Algorithm, DH Group'
+          key_bits: 128–256
+          ref: ''
+      SSH:
+        key_exchange:
+        - name: DH/ECDH
+          type: Asymmetric
+          example: kex, cipher, mac, hostkey
+          key_bits: '2048'
+          ref: ''
+        encryption:
+        - name: AES
+          type: Symmetric
+          examples:
+          - AES-128
+          - AES-256
+          key_bits: 128–256
+          ref: https://datatracker.ietf.org/doc/html/rfc6668
+        - name: ChaCha20
+          type: Symmetric
+          examples:
+          - ChaCha20-poly1305
+          key_bits: '256'
+          ref: https://datatracker.ietf.org/doc/html/rfc8439
+        integrity:
+        - name: HMAC
+          type: Symmetric
+          hashes:
+          - SHA-256
+          - SHA-512
+          key_bits: Depends on hash
+          ref: https://datatracker.ietf.org/doc/html/rfc6668
+        signatures:
+        - name: RSA
+          type: Asymmetric
+          key_bits: 2048–4096
+          ref: ''
+        - name: ECDSA
+          type: Asymmetric
+          hashes:
+          - SHA-256
+          - SHA-384
+          - SHA-512
+          key_bits: '256'
+          ref: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-5.pdf
+        - name: Ed25519
+          type: Asymmetric
+          hash: SHA-512
+          key_bits: '256'
+          ref: ''
+        authentication:
+        - name: Password
+          type: Symmetric
+          key_bits: Varies / Protocol-defined
+          ref: thesis.pdf
+        - name: Pubkey
+          type: Asymmetric
+          key_bits: Varies / Protocol-defined
+          ref: https://datatracker.ietf.org/doc/html/rfc4252
+      OpenPGP:
+        key_exchange:
+        - name: ElGamal
+          type: Asymmetric
+          key_bits: '2048'
+          ref: https://datatracker.ietf.org/doc/html/rfc4880
+        - name: DH
+          type: Asymmetric
+          key_bits: '2048'
+          ref: ''
+        encryption:
+        - name: AES
+          type: Symmetric
+          examples:
+          - AES-128
+          - AES-192
+          - AES-256
+          key_bits: 128–256
+          ref: ''
+        - name: Camellia
+          type: Symmetric
+          examples:
+          - Camellia-128
+          - Camellia-192
+          - Camellia-256
+          key_bits: 128–256
+          ref: ''
+        - name: Twofish
+          type: Symmetric
+          examples:
+          - Twofish-256
+          key_bits: '256'
+          ref: ''
+        integrity:
+        - name: HMAC
+          type: Symmetric
+          hashes:
+          - SHA-2
+          - SHA-3
+          ref: ''
+        signatures:
+        - name: RSA
+          type: Asymmetric
+          key_bits: 2048–4096
+          ref: ''
+        - name: DSA
+          type: Asymmetric
+          hashes:
+          - SHA-256
+          - SHA-384
+          - SHA-512
+          key_bits: '2048'
+          ref: ''
+        - name: ECDSA
+          type: Asymmetric
+          hash: SHA-1
+          key_bits: '256'
+          ref: ''
+        authentication:
+        - name: Sig verification
+          type: Asymmetric
+          ref: https://datatracker.ietf.org/doc/html/rfc4880
+      S/MIME:
+        encryption:
+        - name: AES
+          type: Symmetric
+          examples:
+          - AES-128 GCM
+          - AES-256 GCM
+          - AES-128 CBC
+          key_bits: 128,256
+          ref: https://datatracker.ietf.org/doc/html/rfc8551#section-3.3
+        - name: 3DES
+          type: Symmetric
+          key_bits: '168'
+          ref: ''
+        integrity:
+        - name: SHA2/3 (usage)
+          type: Symmetric
+          key_bits: Depends on hash
+          ref: ''
+        signatures:
+        - name: RSA
+          type: Asymmetric
+          hashes:
+          - SHA-256
+          - SHA-1
+          key_bits: 2048–4096
+          ref: ''
+        - name: ECDSA
+          type: Asymmetric
+          curve: P-256
+          hash: SHA-256
+          key_bits: '256'
+          ref: ''
+        authentication:
+        - name: X.509 certs
+          type: Asymmetric
+          key_bits: Varies / Protocol-defined
+          ref: ''
+      Signal:
+        key_exchange:
+        - name: 'X3DH: Curve25519'
+          type: Asymmetric
+          examples:
+          - X3DH
+          - Curve25519
+          ref: https://medium.com/@janelle.wg/demystifying-the-signal-protocol-for-end-to-end-encryption-c93250e6043e
+        encryption:
+        - name: AES-CTR
+          type: Symmetric
+          example: AES256_CTR
+          key_bits: 128–256
+          ref: ''
+        integrity:
+        - name: HMAC-SHA256
+          type: Symmetric
+          key_bits: Depends on hash
+          ref: ''
+        authentication:
+        - name: Identity keys Curve25519
+          type: Mixed
+          key_bits: '256'
+          ref: https://medium.com/@janelle.wg/demystifying-the-signal-protocol-for-end-to-end-encryption-c93250e6043e
+      Kerberos:
+        encryption:
+        - name: AES
+          type: Symmetric
+          examples:
+          - AES256
+          - AES128
+          key_bits: 128–256
+          ref: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/security-policy-settings/network-security-configure-encryption-types-allowed-for-kerberos
+        - name: DES
+          type: Symmetric
+          examples:
+          - DES_CBC
+          key_bits: '56'
+          ref: RFC 4120
+        - name: 3DES
+          type: Symmetric
+          examples:
+          - DES3-KD
+          - DES3-CBC
+          key_bits: '192'
+          ref: RFC 4120
+        integrity:
+        - name: HMAC_MD5
+          type: Symmetric
+          key_bits: '128'
+          ref: RFC 4120
+        - name: HMAC-SHA1
+          type: Symmetric
+          examples:
+          - HMAC_SHA1_96
+          key_bits: '96'
+          ref: RFC 4120
+        authentication:
+        - name: Tickets/password-derived keys; PKINIT certs (optional)
+          type: Mixed
+          ref: https://datatracker.ietf.org/doc/html/rfc8636
+      WireGuard:
+        key_exchange:
+        - name: Curve25519
+          type: Asymmetric
+          key_bits: '256'
+          ref: https://datatracker.ietf.org/doc/html/rfc7748
+        encryption:
+        - name: ChaCha20
+          type: Symmetric
+          integrity: Poly1305
+          key_bits: '256'
+          ref: 'WireGuard: Next Generation Kernel Network Tunnel'
+        integrity:
+        - name: Poly1305
+          type: Symmetric
+          key_bits: '256'
+          ref: ''
+        authentication:
+        - name: Static public keys
+          type: Asymmetric
+          key_bits: '256'
+          ref: https://datatracker.ietf.org/doc/html/rfc7748
+      Zigbee:
+        encryption:
+        - name: AES-CCM
+          type: Symmetric
+          integrity: CBC-MAC
+          key_bits: 128–256
+          ref: 'ZigBee Security: Basics (Part 2) – Kudelski Security Research'
+        integrity:
+        - name: AES-CCM MIC
+          type: Symmetric
+          key_bits: 128–256
+          ref: 'AN1233: Zigbee Security'
+        authentication:
+        - name: Network/Link keys
+          type: Symmetric
+          mode: AES-CTR
+          ref: ''
+      WPA2 / WPA3:
+        key_exchange:
+        - name: SAE
+          type: Asymmetric-style
+          key_bits: '256'
+          ref: https://www.wi-fi.org/system/files/WPA3%20Specification%20v3.4.pdf
+        - name: PSK
+          type: Symmetric
+          hash: HMAC-SHA1
+          key_bits: 128–256
+          ref: https://standards.ieee.org/ieee/802.11i/3127
+        encryption:
+        - name: AES-CCMP
+          type: Symmetric
+          key_bits: 128–256
+          ref: https://datatracker.ietf.org/doc/html/rfc4309
+        integrity:
+        - name: HMAC-SHA256
+          type: Symmetric
+          key_bits: Depends on hash
+          ref: IEEE 802.11w; IEEE 802.11-2016/2020
+        authentication:
+        - name: Passphrase/PSK
+          type: Symmetric
+          ref: ''
+        - name: SAE creds (A-PAKE)
+          type: Asymmetric
+          ref: https://www.wi-fi.org/system/files/WPA3%20Specification%20v3.4.pdf
+      DNSSEC:
+        signatures:
+        - name: RSA
+          type: Asymmetric
+          key_bits: 2048–4096
+          ref: ''
+        - name: ECDSA
+          type: Asymmetric
+          curves:
+          - P-256
+          - P-384
+          hashes:
+          - SHA-256
+          - SHA-384
+          key_bits: '256'
+          ref: https://datatracker.ietf.org/doc/html/rfc6605
+        - name: EdDSA
+          type: Asymmetric
+          hash: SHAKE-256
+          key_bits: '256'
+          ref: https://datatracker.ietf.org/doc/html/rfc8080#section-6.2
+        authentication:
+        - name: DNSKEY/RRSIG validation
+          type: Asymmetric
+          ref: https://datatracker.ietf.org/doc/html/rfc4034
+      QUIC (TLS 1.3):
+        key_exchange:
+        - name: ECDHE
+          type: Mixed
+          example: inherits TLS naming (e.g., TLS_AES_128_GCM_SHA256)
+          ref: ''
+        encryption:
+        - name: AES-GCM
+          type: Symmetric
+          ref: https://datatracker.ietf.org/doc/html/rfc8446
+        - name: ChaCha20-Poly1305
+          type: Symmetric
+          ref: https://datatracker.ietf.org/doc/html/rfc8446
+        integrity:
+        - name: AEAD tags
+          type: Symmetric
+          ref: ''
+        signatures:
+        - name: RSA
+          type: Mixed
+          ref: ''
+        - name: ECDSA
+          type: Mixed
+          ref: ''
+        authentication:
+        - name: Certs
+          type: Mixed
+          ref: ''
+        research_ref: '[2405.09264] A Quantum of QUIC: Dissecting Cryptography with Post-Quantum Insights'
+      Bitcoin:
+        signatures:
+        - name: ECDSA
+          type: Asymmetric
+          curve: secp256k1
+          key_bits: '256'
+          ref: https://datatracker.ietf.org/doc/html/rfc6090
+        authentication:
+        - name: Ownership via signs
+          type: Asymmetric
+          curve: secp256k1
+          ref: ''
+      Tor:
+        key_exchange:
+        - name: DH
+          type: Asymmetric
+          curve: Curve25519
+          key_bits: '2048'
+          ref: https://datatracker.ietf.org/doc/html/rfc3526
+        - name: RSA
+          type: Asymmetric
+          examples:
+          - RSAES-PKCS1-v1_5
+          - RSASSA-PKCS1-v1_5
+          key_bits: 2048–4096
+          ref: https://datatracker.ietf.org/doc/html/rfc8017
+        encryption:
+        - name: AES
+          type: Symmetric
+          mode: AES-128 CTR
+          ref: https://datatracker.ietf.org/doc/html/rfc3268
+        integrity:
+        - name: SHA1 digest / TLS MACs (usage)
+          type: Symmetric
+          hash: HMAC-SHA1
+          ref: https://datatracker.ietf.org/doc/html/rfc5246
+        authentication:
+        - name: Onion handshake keys
+          type: Mixed
+          ref: ''
+      iMessage:
+        key_exchange:
+        - name: Curve25519
+          type: Mixed
+          example: X25519
+          key_bits: '256'
+          ref: https://datatracker.ietf.org/doc/html/rfc7748
+        encryption:
+        - name: AES
+          type: Symmetric
+          mode: AES-GCM
+          ref: ''
+        integrity:
+        - name: HMAC
+          type: Symmetric
+          hash: HMAC-SHA256
+          ref: https://datatracker.ietf.org/doc/html/rfc2104
+        authentication:
+        - name: Apple ID cert chain
+          type: Mixed
+          algs:
+          - RSA
+          - ECDSA
+          ref: ''
+      OAuth / OIDC:
+        integrity:
+        - name: HMAC (JWT HS256)
+          type: Symmetric
+          ref: https://datatracker.ietf.org/doc/html/rfc7519#section-7.1
+        signatures:
+        - name: RSA
+          type: Mixed
+          algs:
+          - RS256
+          - RS384
+          - RS512
+          ref: https://datatracker.ietf.org/doc/html/rfc7518
+        - name: ECDSA
+          type: Mixed
+          algs:
+          - ES256
+          - ES384
+          - ES512
+          ref: https://datatracker.ietf.org/doc/html/rfc7518
+        - name: EdDSA
+          type: Mixed
+          algs:
+          - Ed25519
+          - Ed448
+          ref: https://datatracker.ietf.org/doc/html/rfc8037
+        - name: HMAC
+          type: Symmetric
+          algs:
+          - HS256
+          - HS384
+          - HS512
+          ref: https://datatracker.ietf.org/doc/html/rfc7518
+        authentication:
+        - name: 'Tokens: client secret or JWK'
+          type: Mixed
+          ref: https://datatracker.ietf.org/doc/html/rfc6749
+      FIDO2 / WebAuthn:
+        integrity:
+        - name: Hash (usage)
+          type: Asymmetric
+          ref: https://developers.yubico.com/python-fido2/API_Documentation/autoapi/fido2/webauthn/index.html
+        signatures:
+        - name: ECDSA
+          type: Asymmetric
+          alg: ES256
+          ref: https://datatracker.ietf.org/doc/html/draft-ietf-cose-webauthn-algorithms-01
+        - name: EdDSA
+          type: Asymmetric
+          ref: https://developers.yubico.com/WebAuthn/Concepts/Using_WebAuthn_for_Signing.html
+        authentication:
+        - name: Public-key assertions
+          type: Asymmetric
+          ref: https://en.wikipedia.org/wiki/WebAuthn
+      MACsec:
+        encryption:
+        - name: AES-GCM
+          type: Symmetric
+          key_bits: 128–256
+          ref: https://ieeexplore.ieee.org/abstract/document/9044731
+        integrity:
+        - name: AES-GCM tag
+          type: Symmetric
+          key_bits: 128–256
+          ref: https://ieeexplore.ieee.org/abstract/document/9044731
+        authentication:
+        - name: PSK / 802.1X creds
+          type: Symmetric/Mixed
+          ref: https://info.support.huawei.com/info-finder/encyclopedia/en/MACsec.html
+      OpenVPN:
+        key_exchange:
+        - name: DH/ECDH
+          type: Asymmetric
+          key_bits: '2048'
+          ref: https://datatracker.ietf.org/doc/html/rfc2409
+        - name: RSA
+          type: Asymmetric
+          example: easy-rsa
+          key_bits: '1024'
+          ref: https://openvpn.net/community-docs/setting-up-your-own-certificate-authority--ca--and-generating-certificates-and-keys-for-an-openvpn-server-and-multiple-clients.html
+        encryption:
+        - name: AES
+          type: Symmetric
+          modes:
+          - CBC
+          - GCM
+          ref: NIST SP 800-38; RFC2104
+        - name: Camellia
+          type: Symmetric
+          ref: RFC6367
+        integrity:
+        - name: HMAC
+          type: Symmetric
+          hashes:
+          - SHA-1
+          - SHA-256
+          - SHA-512
+          ref: RFC3174; RFC 6234
+        signatures:
+        - name: MD5
+          type: Asymmetric
+          example: md5WithRSAEncryption
+          ref: https://openvpn.net/connect-docs/md5-signature-algorithm-support.html
+        authentication:
+        - name: Static key or TLS certs or HMAC using SHA1
+          type: Mixed
+          ref: https://openvpn.net/community-resources/reference-manual-for-openvpn-2-4/
+      DTLS:
+        key_exchange:
+        - name: (EC)DHE/RSA
+          type: Mixed
+          ref: https://www.redhat.com/en/blog/understanding-dtls-all-zero-clienthellorandom-vulnerability
+        encryption:
+        - name: ChaCha20
+          type: Symmetric
+          integrity: Poly1305
+          ref: RFC 9147
+        - name: AES
+          type: Symmetric
+          modes:
+          - AES-GCM
+          - AES-CCM
+          ref: RFC 9147
+        integrity:
+        - name: HMAC/Poly1305
+          type: Symmetric
+          ref: RFC 9147
+        signatures:
+        - name: RSA/ECDSA
+          type: Mixed
+          ref: https://www.redhat.com/en/blog/understanding-dtls-all-zero-clienthellorandom-vulnerability
+        authentication:
+        - name: Certs/PSK
+          type: Mixed
+          ref: https://www.redhat.com/en/blog/understanding-dtls-all-zero-clienthellorandom-vulnerability
+- id: inv.crypto.keywords.any
+  languages:
+  - generic
+  message: 'Inventory: crypto-related keywords detected (broad). Use to locate configs/docs/code references.'
+  severity: INFO
+  pattern-regex: (?i)\b(crypto|cipher|ciphersuite|ciphersuites|key exchange|keyexchange|kem|signature scheme|x509|certificate|csr|pkcs|jwt|jwe|jws|tls|ssl|ssh|ipsec|ike|saml|oauth|oidc|keystore|truststore|kms|hsm)\b
+  metadata:
+    category: inventory
+    tier: E
+    confidence: low
+- id: inv.crypto.libs.any
+  languages:
+  - generic
+  message: 'Inventory: crypto library keyword detected (OpenSSL/BoringSSL/libsodium/mbedTLS/wolfSSL/Botan/Crypto++/NaCl/WebCrypto).'
+  severity: INFO
+  pattern-regex: (?i)\b(openssl|boringssl|libressl|libsodium|sodium|mbedtls|wolfssl|botan|crypto\+\+|cryptopp|nacl|tweetnacl|webcrypto)\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: low
+- id: inv.dh.dsa.legacy.multilang
+  languages:
+  - python
+  - java
+  - go
+  - javascript
+  - typescript
+  - c
+  - cpp
+  message: 'Inventory/Legacy: DH/DSA detected. Often remediation needed; also impacts migration planning.'
+  severity: WARNING
+  pattern-either:
+  - pattern-regex: (?i)\bDSA\b|\bDiffieHellman\b|\bKeyAgreement\.getInstance\("DH"\)
+  - pattern-regex: (?i)\bKeyPairGenerator\.getInstance\("DSA"\)
+  - pattern-regex: (?i)\bcrypto/dsa\b|\bcrypto/dh\b
+  - pattern-regex: (?i)\bDH_generate_key\b|\bDSA_generate_parameters_ex\b|\bNID_dsa\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: medium
+- id: inv.dotnet.crypto
+  languages:
+  - csharp
+  message: 'Inventory: .NET crypto usage detected.'
+  severity: INFO
+  pattern-regex: (?i)\bSystem\.Security\.Cryptography\b|\bSslStream\b|\bX509Certificate2\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: low
+- id: inv.dotnet.crypto.api
+  languages:
+  - csharp
+  message: 'Inventory: .NET crypto API usage detected (System.Security.Cryptography). Track algorithms and key sizes; plan
+    PQC migration.'
+  severity: INFO
+  pattern-either:
+  - pattern: RSA.Create(...)
+  - pattern: ECDsa.Create(...)
+  - pattern: ECDiffieHellman.Create(...)
+  - pattern: Aes.Create(...)
+  - pattern: HMACSHA256(...)
+  - pattern: HMACSHA1(...)
+  - pattern: MD5.Create(...)
+  - pattern: SHA1.Create(...)
+  - pattern-regex: (?i)\bSystem\.Security\.Cryptography\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: medium
+- id: inv.dotnet.sslstream
+  languages:
+  - csharp
+  message: 'Inventory: .NET TLS usage detected (SslStream/HttpClientHandler).'
+  severity: INFO
+  pattern-either:
+  - pattern-regex: (?i)\bSslStream\b
+  - pattern-regex: (?i)\bHttpClientHandler\b
+  - pattern-regex: (?i)\bSslProtocols\b
+  - pattern-regex: (?i)\bServerCertificateCustomValidationCallback\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: low
+- id: inv.ecc.api.multilang
+  languages:
+  - python
+  - java
+  - go
+  - javascript
+  - typescript
+  - c
+  - cpp
+  - csharp
+  message: 'Inventory: ECC usage detected (ECDSA/ECDH/Ed25519/X25519). Track curves/groups used.'
+  severity: INFO
+  pattern-either:
+  - pattern-regex: (?i)\bECDSA\b|\bECDH\b|\bsecp256r1\b|\bprime256v1\b|\bsecp384r1\b|\bX25519\b|\bEd25519\b
+  - pattern-regex: (?i)\bKeyAgreement\.getInstance\("ECDH"\)
+  - pattern-regex: (?i)\bSignature\.getInstance\(".*ECDSA.*"\)
+  - pattern-regex: (?i)\bcrypto/ecdh\b|\bcrypto/elliptic\b
+  - pattern-regex: (?i)\bEVP_PKEY_EC\b|\bEVP_PKEY_X25519\b|\bEVP_PKEY_ED25519\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: medium
+- id: inv.go.crypto.pkgs
+  languages:
+  - go
+  message: 'Inventory: Go crypto packages detected.'
+  severity: INFO
+  pattern-regex: (?i)\bcrypto/(tls|x509|rsa|ecdsa|ed25519|elliptic|ecdh|sha256|sha512|hmac)\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: low
+- id: inv.ipsec.ike.algorithms
+  languages:
+  - generic
+  message: 'Inventory: IPsec/IKE config detected. Review DH groups, PRFs, encryption/hashing choices.'
+  severity: INFO
+  pattern-regex: (?i)\b(ike=|esp=|phase1alg=|phase2alg=|dhgroup|modp\d+|ecp\d+|curve25519|aesgcm|sha2|sha1)\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: low
+- id: inv.java.jca
+  languages:
+  - java
+  message: 'Inventory: Java crypto APIs detected (JCA/JCE).'
+  severity: INFO
+  pattern-regex: (?i)\b(javax\.crypto|java\.security|KeyPairGenerator|MessageDigest|Signature|Cipher|KeyAgreement)\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: low
+- id: inv.java.security.properties
+  languages:
+  - generic
+  message: 'Inventory: Java security properties detected. Review provider order, disabledAlgorithms, namedGroups.'
+  severity: INFO
+  pattern-regex: (?i)\b(jdk\.tls\.disabledAlgorithms|jdk\.certpath\.disabledAlgorithms|security\.provider\.\d+|crypto\.policy|jdk\.tls\.namedGroups)\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: medium
+- id: inv.java.sslcontext
+  languages:
+  - java
+  message: 'Inventory: SSLContext usage detected. Ensure TLS 1.2/1.3 posture and avoid hardcoding weak protocols.'
+  severity: INFO
+  pattern-either:
+  - pattern-regex: (?i)\bSSLContext\.getInstance\("TLS"\)
+  - pattern-regex: (?i)\bSSLContext\.getInstance\("TLSv1"\)
+  - pattern-regex: (?i)\bSSLContext\.getInstance\("TLSv1\.1"\)
+  - pattern-regex: (?i)\bSSLContext\.getInstance\("TLSv1\.2"\)
+  - pattern-regex: (?i)\bSSLContext\.getInstance\("TLSv1\.3"\)
+  metadata:
+    category: inventory
+    tier: B
+    confidence: medium
+- id: inv.k8s.ingress.tls.annotations
+  languages:
+  - generic
+  message: 'Inventory: Kubernetes Ingress/annotations TLS policy knobs detected.'
+  severity: INFO
+  pattern-regex: (?i)\b(nginx\.ingress\.kubernetes\.io/ssl-protocols|nginx\.ingress\.kubernetes\.io/ssl-ciphers|nginx\.ingress\.kubernetes\.io/force-ssl-redirect|alb\.ingress\.kubernetes\.io/ssl-policy|kubernetes\.io/ingress\.class)\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: low
+- id: inv.node.crypto.module
+  languages:
+  - javascript
+  - typescript
+  message: 'Inventory: Node.js crypto module usage detected.'
+  severity: INFO
+  pattern-either:
+  - pattern-regex: (?i)\brequire\(["']crypto["']\)
+  - pattern-regex: (?i)\bfrom\s+["']crypto["']
+  - pattern-regex: (?i)\bimport\s+\*\s+as\s+crypto\s+from\s+["']crypto["']
+  - pattern-regex: (?i)\bimport\s+crypto\s+from\s+["']crypto["']
+  metadata:
+    category: inventory
+    tier: B
+    confidence: medium
+- id: inv.node.tls.options
+  languages:
+  - javascript
+  - typescript
+  message: 'Inventory: Node.js TLS options detected (minVersion/maxVersion/ciphers/ecdhCurve).'
+  severity: INFO
+  pattern-either:
+  - pattern-regex: (?i)\b(minVersion|maxVersion|secureProtocol|ciphers|ecdhCurve|honorCipherOrder)\b
+  - pattern-regex: (?i)\bhttps\.createServer\(
+  - pattern-regex: (?i)\btls\.createServer\(
+  metadata:
+    category: inventory
+    tier: B
+    confidence: low
+- id: inv.openvpn.crypto
+  languages:
+  - generic
+  message: 'Inventory: OpenVPN crypto directives detected. Review tls-cipher/data-ciphers and cert settings.'
+  severity: INFO
+  pattern-regex: (?i)\b(tls-cipher|data-ciphers|cipher\s+AES|cipher\s+BF|auth\s+SHA|tls-crypt|tls-auth)\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: low
+- id: inv.php.openssl
+  languages:
+  - php
+  message: 'Inventory: PHP OpenSSL API usage detected.'
+  severity: INFO
+  pattern-regex: (?i)\bopenssl_(encrypt|decrypt|sign|verify|public_encrypt|private_decrypt|seal|open|get_publickey|get_privatekey)\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: medium
+- id: inv.python.crypto.libs
+  languages:
+  - python
+  message: 'Inventory: Python crypto library usage detected (cryptography/PyCryptodome/pyOpenSSL).'
+  severity: INFO
+  pattern-regex: (?i)\b(cryptography\.hazmat|Crypto\.Cipher|Crypto\.PublicKey|OpenSSL\.crypto)\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: medium
+- id: inv.rsa.api.multilang
+  languages:
+  - python
+  - java
+  - go
+  - javascript
+  - typescript
+  - c
+  - cpp
+  - csharp
+  - php
+  - ruby
+  message: 'Inventory: RSA usage detected. Track purpose (TLS, signing, encryption), padding, and key sizes.'
+  severity: INFO
+  pattern-either:
+  - pattern-regex: (?i)\bRSA\.generate\(
+  - pattern-regex: (?i)\brsa\.generate_private_key\(
+  - pattern-regex: (?i)\bKeyPairGenerator\.getInstance\("RSA"\)
+  - pattern-regex: (?i)\bSignature\.getInstance\(".*RSA.*"\)
+  - pattern-regex: (?i)\bCipher\.getInstance\(".*RSA.*"\)
+  - pattern-regex: (?i)\bcrypto/rsa\b|\brsa\.GenerateKey\(
+  - pattern-regex: (?i)\bcrypto\.generateKeyPair\(\s*["']rsa["']
+  - pattern-regex: (?i)\bEVP_PKEY_RSA\b|\bNID_rsaEncryption\b|\bRSA_generate_key_ex\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: medium
+- id: inv.ruby.openssl
+  languages:
+  - ruby
+  message: 'Inventory: Ruby OpenSSL usage detected.'
+  severity: INFO
+  pattern-regex: (?i)\bOpenSSL::(PKey|Cipher|Digest|X509|SSL)\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: medium
+- id: inv.ssh.config.algorithms
+  languages:
+  - generic
+  message: 'Inventory: SSH algorithm controls detected. Review KexAlgorithms/HostKeyAlgorithms/Ciphers/MACs.'
+  severity: INFO
+  pattern-regex: (?im)^\s*(KexAlgorithms|HostKeyAlgorithms|PubkeyAcceptedAlgorithms|CASignatureAlgorithms|Ciphers|MACs)\s+
+  metadata:
+    category: inventory
+    tier: B
+    confidence: medium
+- id: inv.terraform.tls.policy
+  languages:
+  - generic
+  message: 'Inventory: Terraform/IaC TLS policy references detected (ELB/ALB/CloudFront/Azure/GCP).'
+  severity: INFO
+  pattern-regex: (?i)\b(ssl_policy|min_protocol_version|viewer_certificate|cloudfront_default_certificate|tls_policy|https_only|security_policy|sslProfile)\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: low
+- id: inv.tls.config.any
+  languages:
+  - generic
+  message: 'Inventory: TLS config knobs detected (cipher suites/groups/protocols). Review for posture and PQC/hybrid readiness.'
+  severity: INFO
+  pattern-regex: (?i)\b(ssl_protocols|ssl_ciphers|SSLCipherSuite|SSLProtocol|ssl-default-bind-ciphers|ssl-default-server-ciphers|ciphersuites|CipherString|MinProtocol|MaxProtocol|Groups|ssl_ecdh_curve|jdk\.tls\.namedGroups)\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: low
+- id: inv.tls.hybrid.pqc.groups.any
+  languages:
+  - generic
+  message: 'PQC/Hybrid signal: TLS groups/curves reference suggests hybrid/PQC experimentation. Validate stack support.'
+  severity: INFO
+  pattern-regex: (?i)\b(ssl_ecdh_curve|Groups|namedGroups|jdk\.tls\.namedGroups)\b.*\b(kyber|mlkem|p256_kyber|x25519_kyber|hybrid)\b|\b(kyber|mlkem)\b.*\b(group|namedgroup|curve)\b
+  metadata:
+    category: pqc
+    tier: B
+    confidence: low
+- id: inv.tls.webserver.proxy.config
+  languages:
+  - generic
+  message: 'Inventory: Web server/proxy TLS settings detected (nginx/apache/haproxy/envoy/traefik/caddy).'
+  severity: INFO
+  pattern-regex: (?i)\b(ssl_protocols|ssl_ciphers|ssl_ecdh_curve|ssl_prefer_server_ciphers|SSLCipherSuite|SSLProtocol|SSLHonorCipherOrder|ssl-default-bind-ciphers|ssl-default-server-ciphers|bind\s+.*ssl|tls_(minimum|maximum)_protocol_version|cipher_suites|ecdh_curves|alpn_protocols|transport_socket|downstream_tls_context|minVersion|maxVersion|ciphers|ecdhCurve)\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: low
+- id: inv.webcrypto.subtle
+  languages:
+  - javascript
+  - typescript
+  message: 'Inventory: WebCrypto usage detected (crypto.subtle). Track algorithms used.'
+  severity: INFO
+  pattern-either:
+  - pattern-regex: (?i)\bcrypto\.subtle\b
+  - pattern-regex: (?i)\bwindow\.crypto\.subtle\b
+  metadata:
+    category: inventory
+    tier: B
+    confidence: medium
+- id: pqc.algorithms.keyword.any
+  languages:
+  - generic
+  message: 'PQC: PQC algorithm keyword detected. Verify it’s actual code/config use (not just docs).'
+  severity: INFO
+  pattern-regex: (?i)\b(kyber|ml-?kem|dilithium|ml-?dsa|falcon|sphincs\+?|spx|classic\s*mceliece|mceliece|hqc|bike|frodo(kem)?|ntru|sntrup|rainbow)\b
+  metadata:
+    category: pqc
+    tier: A
+    confidence: low
+- id: pqc.apache.opensslconfcmd.curves
+  languages:
+  - generic
+  message: 'PQC: Apache SSLOpenSSLConfCmd Curves/Groups found (ECDHE groups). ECDHE is Shor-vulnerable; plan for hybrid/PQC
+    when available.'
+  severity: INFO
+  pattern-regex: (?im)^\s*SSLOpenSSLConfCmd\s+(Curves|Groups)\s+(.+)$
+  paths:
+    include:
+    - '**/httpd.conf'
+    - '**/*.conf'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: medium
+    stack: apache
+    signals:
+    - ecdh_groups
+    pqc_risk: high
+- id: pqc.apache.sslciphersuite
+  languages:
+  - generic
+  message: 'PQC: Apache SSLCipherSuite directive found. Inventory RSA/ECDSA/DH usage and remove legacy suites.'
+  severity: INFO
+  pattern-regex: (?im)^\s*SSLCipherSuite\s+(.+)$
+  paths:
+    include:
+    - '**/httpd.conf'
+    - '**/*.conf'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: medium
+    stack: apache
+    signals:
+    - tls12_ciphers
+- id: pqc.apache.sslprotocol
+  languages:
+  - generic
+  message: 'PQC: Apache SSLProtocol directive found. Ensure TLSv1.2+ and inventory crypto posture.'
+  severity: INFO
+  pattern-regex: (?im)^\s*SSLProtocol\s+(.+)$
+  paths:
+    include:
+    - '**/httpd.conf'
+    - '**/*.conf'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: medium
+    stack: apache
+    signals:
+    - tls_protocols
+- id: pqc.bouncycastle.java
+  languages:
+  - java
+  message: 'PQC: BouncyCastle PQC usage/import detected.'
+  severity: INFO
+  patterns:
+  - pattern-either:
+    - pattern-regex: import\s+org\.bouncycastle\.pqc\..*;
+    - pattern-regex: org\.bouncycastle\.pqc\..*
+    - pattern-regex: BouncyCastlePQCProvider
+  metadata:
+    category: pqc
+    tier: A
+    confidence: medium
+- id: pqc.crypto.tokens.ciphersuites
+  languages:
+  - generic
+  message: 'PQC: Detected explicit cipher-suite / crypto token strings (IANA/OpenSSL/Java style). Verify runtime negotiation
+    and classify PQC risk.'
+  severity: INFO
+  pattern-regex: (?im)\bTLS_(?:RSA|DHE|ECDHE|DH|ECDH)_[A-Z0-9_]+\b|\bTLS_(?:AES|CHACHA20)_\d+_[A-Z0-9_]+\b|\b(?:ECDHE|DHE|RSA|ECDSA|ED25519|X25519|SECP256R1|P-256|P-384|P-521)\b
+  paths:
+    include:
+    - '**/*.conf'
+    - '**/*.cnf'
+    - '**/*.yml'
+    - '**/*.yaml'
+    - '**/*.properties'
+    - '**/*.json'
+    - '**/*.txt'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: low
+    signals:
+    - tokens
+    note: Token hit is not proof of negotiated crypto; validate with runtime scans.
+- id: pqc.go.circl
+  languages:
+  - go
+  message: 'PQC: Cloudflare CIRCL usage/import detected (Kyber/Dilithium/etc.). Confirm production vs experiment.'
+  severity: INFO
+  pattern-regex: (?i)\bgithub\.com/cloudflare/circl\b|\bcircl/(kem|sign)\b
+  metadata:
+    category: pqc
+    tier: A
+    confidence: medium
+- id: pqc.haproxy.ssl.bind.ciphers
+  languages:
+  - generic
+  message: 'PQC: HAProxy TLS1.2 cipher list detected (ssl-default-bind-ciphers / bind ... ciphers). Inventory RSA/ECDSA/DH
+    usage and remove legacy suites.'
+  severity: INFO
+  pattern-regex: (?im)^\s*(ssl-default-bind-ciphers|bind\s+.+\s+ciphers)\s+(.+)$
+  paths:
+    include:
+    - '**/haproxy.cfg'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: medium
+    stack: haproxy
+    signals:
+    - tls12_ciphers
+- id: pqc.haproxy.ssl.bind.ciphersuites
+  languages:
+  - generic
+  message: 'PQC: HAProxy TLS1.3 cipher suites detected (ssl-default-bind-ciphersuites / ciphersuites). Inventory TLS1.3 posture.'
+  severity: INFO
+  pattern-regex: (?im)^\s*(ssl-default-bind-ciphersuites|bind\s+.+\s+ciphersuites)\s+(.+)$
+  paths:
+    include:
+    - '**/haproxy.cfg'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: medium
+    stack: haproxy
+    signals:
+    - tls13_ciphers
+- id: pqc.haproxy.ssl.minver
+  languages:
+  - generic
+  message: 'PQC: HAProxy TLS minimum version setting detected. Ensure min TLSv1.2+.'
+  severity: INFO
+  pattern-regex: (?im)^\s*(ssl-default-bind-options|bind\s+.+\s+ssl\s+).*(ssl-min-ver\s+TLSv1\.[0-3]|no-tlsv1(?:\.0)?|no-tlsv11)
+  paths:
+    include:
+    - '**/haproxy.cfg'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: low
+    stack: haproxy
+    signals:
+    - tls_minver
+- id: pqc.ipsec.proposals
+  languages:
+  - generic
+  message: 'PQC: IPsec/IKE proposal configuration detected (ike=/esp=/ikev2=/proposal). DH groups and RSA/ECDSA auth are Shor-vulnerable;
+    plan for PQC/hybrid.'
+  severity: INFO
+  pattern-regex: (?im)^\s*(ike|esp|ikev2|proposal|proposals)\s*=\s*(.+)$
+  paths:
+    include:
+    - '**/ipsec.conf'
+    - '**/strongswan.conf'
+    - '**/swanctl.conf'
+    - '**/*.conf'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: low
+    stack: ipsec
+    signals:
+    - ike
+    - esp
+    - dh_groups
+    - auth
+    pqc_risk: high
+- id: pqc.java.tls.disabledAlgorithms
+  languages:
+  - generic
+  message: 'PQC: Java security policy (jdk.tls.disabledAlgorithms) detected. Confirm legacy algorithms are disabled and inventory
+    crypto use.'
+  severity: INFO
+  pattern-regex: (?im)^\s*jdk\.tls\.disabledAlgorithms\s*=\s*(.+)$
+  paths:
+    include:
+    - '**/java.security'
+    - '**/*.properties'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: medium
+    stack: java
+    signals:
+    - tls_policy
+- id: pqc.java.tls.enabledProtocols
+  languages:
+  - generic
+  message: 'PQC: Java TLS enabled protocols configuration detected. Ensure TLSv1.2+ and inventory negotiated crypto.'
+  severity: INFO
+  pattern-regex: (?im)^\s*(https?\.(protocols|cipherSuites)|jdk\.tls\.client\.protocols|jdk\.tls\.server\.protocols)\s*=\s*(.+)$
+  paths:
+    include:
+    - '**/*.properties'
+    - '**/*.yml'
+    - '**/*.yaml'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: low
+    stack: java
+    signals:
+    - tls_protocols
+    - cipher_policy
+- id: pqc.liboqs.c
+  languages:
+  - c
+  - cpp
+  message: 'PQC: liboqs API usage detected. Record KEM/SIG algorithms and key management.'
+  severity: INFO
+  patterns:
+  - pattern-either:
+    - pattern: OQS_KEM_new(...)
+    - pattern: OQS_KEM_encaps(...)
+    - pattern: OQS_KEM_decaps(...)
+    - pattern: OQS_SIG_new(...)
+    - pattern: OQS_SIG_sign(...)
+    - pattern: OQS_SIG_verify(...)
+    - pattern: OQS_KEM_alg_is_enabled(...)
+    - pattern: OQS_SIG_alg_is_enabled(...)
+    - pattern: '#include <oqs/oqs.h>'
+  metadata:
+    category: pqc
+    tier: A
+    confidence: high
+    ref: https://github.com/open-quantum-safe/liboqs
+- id: pqc.migration.classical.publickey.any
+  languages:
+  - generic
+  message: 'PQC migration inventory: classical public-key crypto referenced (RSA/ECDSA/ECDH/Ed25519/X25519). Not broken today,
+    but not PQC-resistant.'
+  severity: INFO
+  pattern-regex: (?i)\b(rsa|ecdsa|ecdh|ed25519|x25519|secp256r1|prime256v1|secp384r1|curve25519)\b
+  metadata:
+    category: pqc-migration
+    tier: D
+    confidence: low
+- id: pqc.nginx.tls.ciphersuites
+  languages:
+  - generic
+  message: 'PQC: Nginx cipher suite configuration detected. Inventory RSA/ECDSA/DH usage and remove legacy ciphers.'
+  severity: INFO
+  pattern-regex: (?im)^\s*ssl_ciphers\s+([^;]+);
+  paths:
+    include:
+    - '**/nginx.conf'
+    - '**/conf.d/*.conf'
+    - '**/sites-available/*'
+    - '**/sites-enabled/*'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: medium
+    stack: nginx
+    signals:
+    - tls12_ciphers
+- id: pqc.nginx.tls.groups
+  languages:
+  - generic
+  message: 'PQC: Nginx curve/group configuration detected (ECDHE groups). ECDHE is Shor-vulnerable; plan for hybrid/PQC when
+    available.'
+  severity: INFO
+  pattern-regex: (?im)^\s*ssl_ecdh_curve\s+([^;]+);
+  paths:
+    include:
+    - '**/nginx.conf'
+    - '**/conf.d/*.conf'
+    - '**/sites-available/*'
+    - '**/sites-enabled/*'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: medium
+    stack: nginx
+    signals:
+    - ecdh_groups
+    pqc_risk: high
+- id: pqc.nginx.tls.protocols
+  languages:
+  - generic
+  message: 'PQC: Nginx TLS protocol configuration found. Confirm TLSv1.2+ only and inventory negotiated crypto.'
+  severity: INFO
+  pattern-regex: (?im)^\s*ssl_protocols\s+([^;]+);
+  paths:
+    include:
+    - '**/nginx.conf'
+    - '**/conf.d/*.conf'
+    - '**/sites-available/*'
+    - '**/sites-enabled/*'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: medium
+    stack: nginx
+    signals:
+    - tls_protocols
+- id: pqc.openssl.cnf.ciphers
+  languages:
+  - generic
+  message: 'PQC: OpenSSL config sets CipherString/Ciphersuites. Inventory RSA/ECDSA/DH usage and remove legacy crypto.'
+  severity: INFO
+  pattern-regex: (?im)^\s*(CipherString|Ciphersuites)\s*=\s*(.+)\s*$
+  paths:
+    include:
+    - '**/openssl.cnf'
+    - '**/openssl*.cnf'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: medium
+    stack: openssl
+    signals:
+    - cipher_policy
+- id: pqc.openssl.cnf.groups
+  languages:
+  - generic
+  message: 'PQC: OpenSSL config sets Groups/Curves. ECDHE groups are Shor-vulnerable; plan for hybrid/PQC when available.'
+  severity: INFO
+  pattern-regex: (?im)^\s*(Groups|Curves)\s*=\s*(.+)\s*$
+  paths:
+    include:
+    - '**/openssl.cnf'
+    - '**/openssl*.cnf'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: medium
+    stack: openssl
+    signals:
+    - ecdh_groups
+    pqc_risk: high
+- id: pqc.openssl.cnf.minprotocol
+  languages:
+  - generic
+  message: 'PQC: OpenSSL config sets MinProtocol/MaxProtocol. Verify TLS policy and inventory negotiated crypto.'
+  severity: INFO
+  pattern-regex: (?im)^\s*(MinProtocol|MaxProtocol)\s*=\s*(TLSv1(?:\.[0-3])?)\s*$
+  paths:
+    include:
+    - '**/openssl.cnf'
+    - '**/openssl*.cnf'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: medium
+    stack: openssl
+    signals:
+    - tls_protocols
+- id: pqc.openssl.cnf.oqsprovider
+  languages:
+  - generic
+  message: 'PQC: OpenSSL config references oqsprovider/providers. Confirm activation and allowed groups.'
+  severity: INFO
+  pattern-regex: (?im)^\s*\[providers\]\s*$|^\s*\[oqsprovider\]\s*$|\boqsprovider\b|^\s*activate\s*=\s*1\s*$|^\s*providers\s*=\s*providers\s*$
+  metadata:
+    category: pqc
+    tier: A
+    confidence: medium
+- id: pqc.openvpn.crypto
+  languages:
+  - generic
+  message: 'PQC: OpenVPN crypto configuration detected (cipher/auth/data-ciphers/tls-version-min). Inventory RSA/ECDSA/DH
+    usage and ensure modern suites.'
+  severity: INFO
+  pattern-regex: (?im)^\s*(cipher|data-ciphers|data-ciphers-fallback|auth|tls-version-min|tls-cipher|tls-ciphersuites|ecdh-curve|dh)\s+(.+)$
+  paths:
+    include:
+    - '**/*.ovpn'
+    - '**/openvpn/*.conf'
+    - '**/server.conf'
+    - '**/client.conf'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: medium
+    stack: openvpn
+    signals:
+    - tls_policy
+    - cipher_policy
+    - kex
+    pqc_risk: high
+- id: pqc.oqsprovider.openssl.c
+  languages:
+  - c
+  - cpp
+  message: 'PQC: OpenSSL oqsprovider detected (provider loading). Verify enabled groups/sigs and interoperability.'
+  severity: INFO
+  patterns:
+  - pattern-either:
+    - pattern: OSSL_PROVIDER_load(..., "oqsprovider")
+    - pattern: OSSL_PROVIDER_load(..., 'oqsprovider')
+    - pattern: OSSL_PROVIDER_load($LIBCTX, "oqsprovider")
+    - pattern: OSSL_PROVIDER_load($LIBCTX, 'oqsprovider')
+  metadata:
+    category: pqc
+    tier: A
+    confidence: high
+    ref: https://github.com/open-quantum-safe/oqs-provider
+- id: pqc.rust.pqc.crates
+  languages:
+  - generic
+  message: 'PQC: Rust crate indicators detected (Cargo.toml / code). Confirm actual usage and selected algorithms.'
+  severity: INFO
+  pattern-regex: (?i)\b(pqcrypto|pqcrypto-kyber|pqcrypto-dilithium|kyber-pke|dilithium|sphincs|falcon|mceliece|hqc|bike)\b
+  metadata:
+    category: pqc
+    tier: A
+    confidence: low
+- id: pqc.ssh.kex.keyword
+  languages:
+  - generic
+  message: 'PQC/Hybrid signal: SSH KEX keyword detected (kyber/mlkem/sntrup/ntru/hybrid). Confirm actual OpenSSH build/support.'
+  severity: INFO
+  pattern-regex: (?i)\bKexAlgorithms\b.*\b(kyber|mlkem|sntrup|ntru|hybrid)\b|\b(kyber|mlkem|sntrup|ntru)\b.*\b(kex|KexAlgorithms)\b
+  metadata:
+    category: pqc
+    tier: B
+    confidence: low
+- id: pqc.sshd.algorithms
+  languages:
+  - generic
+  message: 'PQC: sshd_config crypto algorithms detected (KexAlgorithms/Ciphers/MACs/HostKeyAlgorithms). DH/ECDH/ECDSA/RSA
+    are Shor-vulnerable; plan for PQC/hybrid where applicable.'
+  severity: INFO
+  pattern-regex: (?im)^\s*(KexAlgorithms|Ciphers|MACs|HostKeyAlgorithms|PubkeyAcceptedAlgorithms)\s+(.+)$
+  paths:
+    include:
+    - '**/sshd_config'
+    - '**/ssh/sshd_config'
+    - '**/etc/ssh/sshd_config'
+  metadata:
+    category: pqc
+    tier: B
+    confidence: medium
+    stack: ssh
+    signals:
+    - kex
+    - ciphers
+    - mac
+    - hostkeys
+    pqc_risk: high
+- id: weak.cipher.blowfish.idea.generic
+  languages:
+  - generic
+  message: 'Legacy crypto: Blowfish/IDEA detected. Prefer modern AEAD (AES-GCM/ChaCha20-Poly1305).'
+  severity: WARNING
+  pattern-regex: (?i)\bblowfish\b|\bidea\b
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: cipher
+    confidence: low
+- id: weak.cipher.des3desrc4.generic
+  languages:
+  - generic
+  message: 'Weak crypto: DES/3DES/RC4 detected (deprecated). Prefer AES-GCM or ChaCha20-Poly1305.'
+  severity: ERROR
+  pattern-regex: (?i)\bdes\b|\b3des\b|\bdes-ede3\b|\brc4\b|\barcfour\b
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: cipher
+    confidence: low
+- id: weak.dotnet.certvalidationcallback
+  languages:
+  - csharp
+  message: 'Critical: .NET custom cert validation callback present. Ensure it does not accept all certificates.'
+  severity: WARNING
+  pattern-regex: (?i)\bServerCertificateCustomValidationCallback\b|\bRemoteCertificateValidationCallback\b
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: tls
+    confidence: medium
+- id: weak.go.import.md5sha1
+  languages:
+  - go
+  message: 'Weak crypto: Go import crypto/md5 or crypto/sha1 detected.'
+  severity: ERROR
+  pattern-either:
+  - pattern-regex: import\s+"crypto/md5"
+  - pattern-regex: import\s+"crypto/sha1"
+  - pattern-regex: import\s+\(\s*("crypto/md5"|"crypto/sha1")
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: hash
+    confidence: medium
+- id: weak.hash.md5.generic
+  languages:
+  - generic
+  message: 'Weak crypto: MD5 detected (broken). Replace with SHA-256+ (or Argon2/bcrypt/scrypt for passwords).'
+  severity: ERROR
+  pattern-regex: (?i)\bmd5\b|md5withrsa|hmacmd5
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: hash
+    confidence: low
+- id: weak.hash.sha1.generic
+  languages:
+  - generic
+  message: 'Weak crypto: SHA-1 detected (deprecated). Replace with SHA-256+.'
+  severity: ERROR
+  pattern-regex: (?i)\bsha-?1\b|sha1withrsa|hmacsha1
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: hash
+    confidence: low
+- id: weak.java.cipher.weakmodes
+  languages:
+  - java
+  message: 'Weak crypto: Java Cipher uses DES/3DES/RC4/ECB. Prefer AES/GCM/NoPadding or ChaCha20-Poly1305.'
+  severity: ERROR
+  pattern-regex: (?i)\bCipher\.getInstance\(".*(DES|DESede|3DES|RC4|ECB).*"\)
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: cipher
+    confidence: medium
+- id: weak.java.messagedigest.md5sha1
+  languages:
+  - java
+  message: 'Weak crypto: Java MessageDigest MD5/SHA-1 detected.'
+  severity: ERROR
+  pattern-either:
+  - pattern: MessageDigest.getInstance("MD5")
+  - pattern: MessageDigest.getInstance("SHA-1")
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: hash
+    confidence: high
+- id: weak.mode.ecb.generic
+  languages:
+  - generic
+  message: 'Weak crypto: ECB mode detected (unsafe). Use AEAD (AES-GCM/ChaCha20-Poly1305).'
+  severity: ERROR
+  pattern-regex: (?i)\bECB\b|\bAES[-_ ]?ECB\b|\bDES[-_ ]?ECB\b
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: mode
+    confidence: low
+- id: weak.node.createhash.md5sha1
+  languages:
+  - javascript
+  - typescript
+  message: 'Weak crypto: Node crypto.createHash(''md5''/''sha1'') detected.'
+  severity: ERROR
+  pattern-either:
+  - pattern: crypto.createHash("md5")
+  - pattern: crypto.createHash("sha1")
+  - pattern: crypto.createHash('md5')
+  - pattern: crypto.createHash('sha1')
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: hash
+    confidence: high
+- id: weak.openssl.seclevel.low
+  languages:
+  - generic
+  message: 'Weak config: OpenSSL security level lowered (SECLEVEL=0/1). Often enables weak suites.'
+  severity: WARNING
+  pattern-regex: (?i)\b@SECLEVEL=[01]\b|\bseclevel\s*=\s*[01]\b
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: openssl-config
+    confidence: medium
+- id: weak.python.ecb.mode
+  languages:
+  - python
+  message: 'Weak crypto: Python ECB mode indicator detected (MODE_ECB).'
+  severity: ERROR
+  pattern-regex: (?i)\bMODE_ECB\b
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: mode
+    confidence: medium
+- id: weak.python.hashlib.md5sha1
+  languages:
+  - python
+  message: 'Weak crypto: Python hashlib.md5()/sha1() detected.'
+  severity: ERROR
+  pattern-either:
+  - pattern: hashlib.md5(...)
+  - pattern: hashlib.sha1(...)
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: hash
+    confidence: high
+- id: weak.rsa.shortkey.generic
+  languages:
+  - generic
+  message: 'Weak crypto: RSA 1024/1536-bit referenced. Upgrade to >=2048 (often 3072+) and plan PQC migration.'
+  severity: ERROR
+  pattern-regex: (?i)\bRSA\b.{0,40}\b(1024|1536)\b|\brsa\s*(1024|1536)\b|\bkeysize\s*[:=]\s*(1024|1536)\b|RSA_generate_key_ex\s*\([^,]+,\s*(1024|1536)\b
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: keysize
+    confidence: low
+- id: weak.tls.go.insecureskipverify
+  languages:
+  - go
+  message: 'Critical: Go TLS InsecureSkipVerify=true disables certificate verification.'
+  severity: ERROR
+  pattern: 'tls.Config{..., InsecureSkipVerify: true, ...}
+
+    '
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: tls
+    confidence: high
+- id: weak.tls.python.verifyfalse
+  languages:
+  - python
+  message: 'Critical: Python TLS verification disabled (verify=False / CERT_NONE).'
+  severity: ERROR
+  patterns:
+  - pattern-either:
+    - pattern: requests.get(..., verify=False, ...)
+    - pattern: requests.post(..., verify=False, ...)
+    - pattern: urllib3.PoolManager(..., cert_reqs="CERT_NONE", ...)
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: tls
+    confidence: high
+- id: weak.tls.v1.v1_1.generic
+  languages:
+  - generic
+  message: 'Weak crypto: TLS 1.0/1.1 detected. Disable; require TLS 1.2/1.3.'
+  severity: ERROR
+  pattern-regex: (?i)\bTLSv1(\.0)?\b|\bTLSv1\.1\b|\bssl_protocols\s+.*TLSv1(\.0)?\b|\bMinProtocol\s*=\s*TLSv1(\.0)?\b
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: tls
+    confidence: medium
+- id: weak.tls.weakcipher.keywords
+  languages:
+  - generic
+  message: 'Weak TLS cipher hint: NULL/EXPORT/RC4/3DES/MD5/SHA1/anon suites. Confirm in actual cipher lists.'
+  severity: ERROR
+  pattern-regex: (?i)\b(NULL|aNULL|eNULL|EXPORT|RC4|3DES|DES|MD5|SHA1|anon)\b
+  metadata:
+    category: weak-crypto
+    tier: C
+    type: tls
+    confidence: low

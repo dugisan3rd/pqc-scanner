@@ -1,0 +1,19 @@
+==============================================================================
+PQC READINESS TECHNICAL AUDIT (LOCAL, ADMIN)
+==============================================================================
+Generated: 2026-02-24T14:58:44+0800
+Host: Farzul | OS: Linux 4.4.0-26100-Microsoft (x86_64)
+Admin/root: True
+
+Listening services:
+
+PQC signals (heuristic): []
+Crypto-agility score: 3/5 (Good)
+  * nmap present (capability enumeration)
+  * openssl present (crypto stack visibility)
+  * central TLS termination likely (nginx/haproxy detected)
+
+Notes:
+  - RSA/ECDSA/ECDH are classical (future Shor risk).
+  - PQC readiness practically requires: inventory + data lifetime + client constraints + migration plan.
+==============================================================================

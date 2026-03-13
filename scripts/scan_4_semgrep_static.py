@@ -37,6 +37,8 @@ def scan_semgrep_cbom(semgrep_bin: Path, target_path: str, timestamp: int, rando
         "--config",
         SEMGREP_CONF,
         "--scan-unknown-extensions",
+        # "--exclude=.git*",
+        # "--exclude=*.md",
         "--no-git-ignore",
         "--verbose",
         "--json-output",

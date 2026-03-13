@@ -1,0 +1,196 @@
+rules:
+  # ============================================================
+  # PQC Readiness (Universal / Low-FP)
+  # One YAML, scans any OS + any language by using generic text matching.
+  #
+  # What it flags (focus on PQC relevance):
+  #   - Classical public-key algorithms / curves (RSA, ECDH/ECDSA, DH/DHE, EdDSA, X25519, NIST curves)
+  #   - TLS classical KEX/signature configuration hints
+  #   - Common public-key crypto API callsites (OpenSSL/PHP/Python/Node/Java/Go) as hotspots
+  #   - PEM key/cert markers (where classical keys usually live)
+  #   - PQC-positive keywords (Kyber/Dilithium/etc.)
+  #
+  # False-positive reduction tactics used here:
+  #   - Avoid matching symmetric/hash tokens (AES/SHA/HMAC/etc.) because they are not PQC drivers.
+  #   - Avoid matching bare "EC" and other short tokens that collide with normal words.
+  #   - Tight word-boundaries and more specific phrases.
+  #   - Exclude common third-party/build directories.
+  # ============================================================
+
+  - id: pqc.inventory.classical-publickey-identifiers
+    languages: [generic]
+    severity: WARNING
+    message: >
+      Classical (non-PQC) public-key algorithm/curve identifier detected. Inventory this for PQC migration planning
+      (KEM/signature replacement impact).
+    metadata:
+      category: pqc
+      type: inventory
+      focus: public_key
+    paths:
+      exclude:
+        - node_modules/
+        - vendor/
+        - dist/
+        - build/
+        - target/
+        - .git/
+        - .idea/
+        - .vscode/
+        - "**/*.min.js"
+        - "**/*.map"
+    pattern-regex: >
+      (?ix)
+      \b(
+        RSA |
+        DSA |
+        (?:Diffie[- ]Hellman|DH) |
+        (?:DHE) |
+        (?:ECDH|ECDHE) |
+        (?:ECDSA) |
+        (?:Ed25519|Ed448|EdDSA) |
+        (?:X25519|X448|Curve25519) |
+        (?:secp256r1|prime256v1|P-256|P-384|P-521|secp384r1|secp521r1)
+      )\b
+
+  - id: pqc.inventory.pem-key-cert-markers
+    languages: [generic]
+    severity: INFO
+    message: >
+      PEM key/cert marker detected. Confirm key type (RSA/EC/EdDSA) and track for PQC readiness.
+    metadata:
+      category: pqc
+      type: inventory
+      focus: key_material
+    paths:
+      exclude:
+        - node_modules/
+        - vendor/
+        - dist/
+        - build/
+        - target/
+        - .git/
+    pattern-regex: >
+      (?x)
+      -----BEGIN\s(
+        RSA\sPRIVATE\sKEY |
+        EC\sPRIVATE\sKEY |
+        PRIVATE\sKEY |
+        PUBLIC\sKEY |
+        CERTIFICATE
+      )-----
+
+  - id: pqc.config.tls-classical-kex-signature-hints
+    languages: [generic]
+    severity: INFO
+    message: >
+      TLS classical key exchange/signature hint detected. Review TLS config for PQC/hybrid readiness planning
+      (key establishment + signature algorithms).
+    metadata:
+      category: pqc
+      type: config
+      focus: tls
+    paths:
+      exclude:
+        - node_modules/
+        - vendor/
+        - dist/
+        - build/
+        - target/
+        - .git/
+        - "**/*.min.js"
+    pattern-regex: >
+      (?ix)
+      \b(
+        ECDHE | ECDH | ECDSA | DHE | DH | RSA |
+        TLS_(?:ECDHE|DHE|DH|RSA)_[A-Z0-9_]+ |
+        (?:supported_groups|named_groups|ecdh_curves|signature_algorithms) |
+        (?:X25519|X448|P-256|P-384|P-521|secp256r1|prime256v1)
+      )\b
+
+  - id: pqc.hotspot.publickey-crypto-api-calls
+    languages: [generic]
+    severity: WARNING
+    message: >
+      Possible public-key crypto API hotspot detected. Verify whether classical RSA/ECDH/ECDSA/DH/EdDSA is used and
+      record for PQC migration.
+    metadata:
+      category: pqc
+      type: hotspot
+      focus: api_calls
+    paths:
+      exclude:
+        - node_modules/
+        - vendor/
+        - dist/
+        - build/
+        - target/
+        - .git/
+        - "**/*.min.js"
+        - "**/*.map"
+    pattern-regex: >
+      (?ix)
+      \b(
+        # OpenSSL C/C++ (public-key related)
+        EVP_PKEY(?:_CTX)? |
+        RSA_(?:new|generate_key(?:_ex)?|public_encrypt|private_decrypt|sign|verify) |
+        EC_KEY_(?:new|generate_key|set_group|free) |
+        ECDSA_(?:sign|verify) |
+        ECDH_(?:compute_key) |
+        DH_(?:new|generate_key|compute_key|free) |
+        DSA_(?:new|generate_key|sign|verify|free) |
+
+        # PHP OpenSSL
+        openssl_pkey_(?:new|get_private|get_public) |
+        openssl_(?:sign|verify|public_encrypt|private_decrypt|seal|open) |
+
+        # Python (cryptography / pyca) - common entry points
+        (?:rsa|ec|ed25519|ed448)\.generate_private_key |
+        load_pem_(?:private|public)_key |
+        load_der_(?:private|public)_key |
+
+        # Node.js crypto
+        generateKeyPair |
+        create(?:PrivateKey|PublicKey|Sign|Verify) |
+        publicEncrypt | privateDecrypt |
+        diffieHellman | createECDH |
+
+        # Java JCA (stringy selectors)
+        KeyPairGenerator\.getInstance |
+        KeyAgreement\.getInstance |
+        Signature\.getInstance |
+
+        # Go (package path hints / common TLS usage)
+        crypto\/(?:rsa|ecdsa|ecdh|ed25519|dsa) |
+        x509\.(?:Parse|Marshal) |
+        tls\.(?:Config|Listen)
+      )\b
+
+  - id: pqc.positive.pqc-keywords
+    languages: [generic]
+    severity: INFO
+    message: >
+      PQC-related keyword found. Validate real algorithm/provider usage (Kyber/Dilithium/etc.) and document controls.
+    metadata:
+      category: pqc
+      type: positive
+      focus: pqc
+    paths:
+      exclude:
+        - node_modules/
+        - vendor/
+        - dist/
+        - build/
+        - target/
+        - .git/
+    pattern-regex: >
+      (?ix)
+      \b(
+        PQC | post[- ]quantum | postquantum |
+        Kyber | ML[- ]?KEM |
+        Dilithium | ML[- ]?DSA |
+        SPHINCS\+? | Falcon |
+        Classic\sMcEliece | McEliece |
+        NTRU | HQC |
+        hybrid | pqc[- ]?tls
+      )\b

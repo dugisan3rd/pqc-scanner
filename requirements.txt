@@ -6,3 +6,4 @@ loguru
 semgrep
 jmespath
 jsonpath-ng
+pandas

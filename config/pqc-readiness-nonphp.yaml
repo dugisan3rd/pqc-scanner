@@ -1,0 +1,560 @@
+rules:
+  # ==========================================================
+  # PQC Readiness (Non-PHP) — Static code inventory + findings
+  # Languages: JavaScript/TypeScript, Python, Java, Go, C#
+  # Notes:
+  # - Inventory rules: INFO/WARNING (migration hotspots)
+  # - Findings rules: ERROR (known-weak / insecure configurations)
+  # - CBOM fields live in metadata.cbom for easy export
+  # ==========================================================
+
+  # -------------------------
+  # Common path exclusions
+  # -------------------------
+  - id: pqc-nonphp-meta-note
+    message: "Meta placeholder (not a real rule)."
+    languages: [generic]
+    severity: INFO
+    pattern: |
+      this_will_never_match()
+    paths:
+      exclude: [vendor/, node_modules/, dist/, build/, target/, bin/, obj/, out/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom]
+      cbom:
+        cryptographic_function: null
+        algorithm_used: null
+        algorithm_category: null
+        library_module: null
+        key_length: null
+        purpose_usage: null
+
+  # ==========================================================
+  # JavaScript / TypeScript (Node + WebCrypto)
+  # ==========================================================
+
+  - id: pqc-js-weak-hash
+    message: "PQC CBOM Finding (Crypto-Agility=No): Weak hash used (MD5/SHA1) in Node.js/WebCrypto."
+    languages: [javascript, typescript]
+    severity: ERROR
+    pattern-either:
+      - pattern: |
+          crypto.createHash('md5')
+      - pattern: |
+          crypto.createHash("md5")
+      - pattern: |
+          crypto.createHash('sha1')
+      - pattern: |
+          crypto.createHash("sha1")
+      - pattern: |
+          crypto.subtle.digest('SHA-1', ...)
+      - pattern: |
+          crypto.subtle.digest("SHA-1", ...)
+      - pattern: |
+          crypto.subtle.digest({ name: 'SHA-1' }, ...)
+      - pattern: |
+          crypto.subtle.digest({ name: "SHA-1" }, ...)
+    paths:
+      exclude: [vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom, weak_crypto, hashing, js]
+      cbom:
+        cryptographic_function: "Hashing"
+        algorithm_used: "MD5/SHA1"
+        algorithm_category: "Hash"
+        library_module: "Node.js crypto / WebCrypto"
+        key_length: null
+        purpose_usage: "Hashing"
+
+  - id: pqc-js-rsa-keygen-weak
+    message: "Security Finding: RSA key generation uses weak modulus length (<2048)."
+    languages: [javascript, typescript]
+    severity: ERROR
+    patterns:
+      - pattern-either:
+          - pattern: |
+              crypto.generateKeyPair('rsa', { ..., modulusLength: $BITS, ... }, ...)
+          - pattern: |
+              crypto.generateKeyPair("rsa", { ..., modulusLength: $BITS, ... }, ...)
+          - pattern: |
+              crypto.generateKeyPairSync('rsa', { ..., modulusLength: $BITS, ... }, ...)
+          - pattern: |
+              crypto.generateKeyPairSync("rsa", { ..., modulusLength: $BITS, ... }, ...)
+      - metavariable-comparison:
+          metavariable: $BITS
+          comparison: $BITS < 2048
+    paths:
+      exclude: [vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom, weak_crypto, rsa, js]
+      cbom:
+        cryptographic_function: "Key Generation"
+        algorithm_used: "RSA"
+        algorithm_category: "Asymmetric"
+        library_module: "Node.js crypto"
+        key_length: "<2048"
+        purpose_usage: "Key Pair Generation"
+
+  - id: pqc-js-webcrypto-asymmetric-inventory
+    message: "CBOM Inventory (PQC): WebCrypto asymmetric usage detected (RSA/ECDSA/ECDH)."
+    languages: [javascript, typescript]
+    severity: INFO
+    pattern-either:
+      - pattern: |
+          crypto.subtle.generateKey({ name: 'RSA-OAEP', ... }, ...)
+      - pattern: |
+          crypto.subtle.generateKey({ name: "RSA-OAEP", ... }, ...)
+      - pattern: |
+          crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', ... }, ...)
+      - pattern: |
+          crypto.subtle.generateKey({ name: "RSASSA-PKCS1-v1_5", ... }, ...)
+      - pattern: |
+          crypto.subtle.generateKey({ name: 'ECDSA', ... }, ...)
+      - pattern: |
+          crypto.subtle.generateKey({ name: "ECDSA", ... }, ...)
+      - pattern: |
+          crypto.subtle.generateKey({ name: 'ECDH', ... }, ...)
+      - pattern: |
+          crypto.subtle.generateKey({ name: "ECDH", ... }, ...)
+      - pattern: |
+          crypto.subtle.importKey(..., { name: 'RSA-OAEP', ... }, ...)
+      - pattern: |
+          crypto.subtle.importKey(..., { name: "RSA-OAEP", ... }, ...)
+      - pattern: |
+          crypto.subtle.importKey(..., { name: 'RSASSA-PKCS1-v1_5', ... }, ...)
+      - pattern: |
+          crypto.subtle.importKey(..., { name: "RSASSA-PKCS1-v1_5", ... }, ...)
+      - pattern: |
+          crypto.subtle.importKey(..., { name: 'ECDSA', ... }, ...)
+      - pattern: |
+          crypto.subtle.importKey(..., { name: "ECDSA", ... }, ...)
+      - pattern: |
+          crypto.subtle.importKey(..., { name: 'ECDH', ... }, ...)
+      - pattern: |
+          crypto.subtle.importKey(..., { name: "ECDH", ... }, ...)
+    paths:
+      exclude: [vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom, inventory, asymmetric, webcrypto, js]
+      cbom:
+        cryptographic_function: "Key Management"
+        algorithm_used: "RSA/ECDSA/ECDH"
+        algorithm_category: "Asymmetric"
+        library_module: "WebCrypto"
+        key_length: null
+        purpose_usage: "Key Generation/Import"
+
+  - id: pqc-js-tls-verify-disabled
+    message: "Security Finding: TLS certificate verification disabled (rejectUnauthorized: false)."
+    languages: [javascript, typescript]
+    severity: ERROR
+    pattern-either:
+      - pattern: |
+          https.request({ ..., rejectUnauthorized: false, ... }, ...)
+      - pattern: |
+          tls.connect({ ..., rejectUnauthorized: false, ... }, ...)
+      - pattern: |
+          new https.Agent({ ..., rejectUnauthorized: false, ... })
+    paths:
+      exclude: [vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom, tls, weak_crypto, js]
+      cbom:
+        cryptographic_function: "Secure Channel"
+        algorithm_used: "TLS (Verification Disabled)"
+        algorithm_category: "TLS Misconfiguration"
+        library_module: "Node.js https/tls"
+        key_length: null
+        purpose_usage: "Transport Security"
+
+  - id: pqc-js-jwt-rs-es-inventory
+    message: "CBOM Inventory (PQC): JWT/JWS uses RSA/ECDSA algorithms (RS*/ES*)."
+    languages: [javascript, typescript]
+    severity: INFO
+    pattern-either:
+      - pattern: |
+          jwt.sign(..., { ..., algorithm: 'RS256', ... })
+      - pattern: |
+          jwt.sign(..., { ..., algorithm: "RS256", ... })
+      - pattern: |
+          jwt.sign(..., { ..., algorithm: 'ES256', ... })
+      - pattern: |
+          jwt.sign(..., { ..., algorithm: "ES256", ... })
+      - pattern: |
+          jwt.verify(..., { ..., algorithms: [...], ... })
+    paths:
+      exclude: [vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom, inventory, jwt, js]
+      cbom:
+        cryptographic_function: "Signing/Verification"
+        algorithm_used: "JWT (RS*/ES*)"
+        algorithm_category: "Asymmetric Signature"
+        library_module: "jsonwebtoken (or compatible)"
+        key_length: null
+        purpose_usage: "Token Signing/Verification"
+
+  # ==========================================================
+  # Python
+  # ==========================================================
+
+  - id: pqc-py-weak-hash
+    message: "PQC CBOM Finding (Crypto-Agility=No): Weak hash used (MD5/SHA1) in Python."
+    languages: [python]
+    severity: ERROR
+    pattern-either:
+      - pattern: |
+          hashlib.md5(...)
+      - pattern: |
+          hashlib.sha1(...)
+      - pattern: |
+          hashlib.new('md5', ...)
+      - pattern: |
+          hashlib.new("md5", ...)
+      - pattern: |
+          hashlib.new('sha1', ...)
+      - pattern: |
+          hashlib.new("sha1", ...)
+    paths:
+      exclude: [venv/, .venv/, vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom, weak_crypto, hashing, python]
+      cbom:
+        cryptographic_function: "Hashing"
+        algorithm_used: "MD5/SHA1"
+        algorithm_category: "Hash"
+        library_module: "hashlib"
+        key_length: null
+        purpose_usage: "Hashing"
+
+  - id: pqc-py-rsa-keygen-inventory
+    message: "CBOM Inventory (PQC): RSA key generation detected (PyCA cryptography)."
+    languages: [python]
+    severity: INFO
+    pattern-either:
+      - pattern: |
+          rsa.generate_private_key(...)
+      - pattern: |
+          cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(...)
+    paths:
+      exclude: [venv/, .venv/, vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom, inventory, rsa, python]
+      cbom:
+        cryptographic_function: "Key Generation"
+        algorithm_used: "RSA"
+        algorithm_category: "Asymmetric"
+        library_module: "PyCA cryptography"
+        key_length: null
+        purpose_usage: "Key Pair Generation"
+
+  - id: pqc-py-rsa-keygen-weak
+    message: "Security Finding: RSA key generation uses weak key size (<2048) in Python (PyCA cryptography)."
+    languages: [python]
+    severity: ERROR
+    patterns:
+      - pattern-either:
+          - pattern: |
+              rsa.generate_private_key(public_exponent=..., key_size=$BITS, ...)
+          - pattern: |
+              cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(public_exponent=..., key_size=$BITS, ...)
+      - metavariable-comparison:
+          metavariable: $BITS
+          comparison: $BITS < 2048
+    paths:
+      exclude: [venv/, .venv/, vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom, weak_crypto, rsa, python]
+      cbom:
+        cryptographic_function: "Key Generation"
+        algorithm_used: "RSA"
+        algorithm_category: "Asymmetric"
+        library_module: "PyCA cryptography"
+        key_length: "<2048"
+        purpose_usage: "Key Pair Generation"
+
+  - id: pqc-py-tls-verify-disabled
+    message: "Security Finding: TLS certificate verification disabled in Python HTTP client."
+    languages: [python]
+    severity: ERROR
+    pattern-either:
+      - pattern: |
+          requests.get(..., verify=False, ...)
+      - pattern: |
+          requests.post(..., verify=False, ...)
+      - pattern: |
+          requests.request(..., verify=False, ...)
+      - pattern: |
+          urllib3.disable_warnings(...)
+    paths:
+      exclude: [venv/, .venv/, vendor/, node_modules/, dist/, build/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom, tls, weak_crypto, python]
+      cbom:
+        cryptographic_function: "Secure Channel"
+        algorithm_used: "TLS (Verification Disabled)"
+        algorithm_category: "TLS Misconfiguration"
+        library_module: "requests/urllib3"
+        key_length: null
+        purpose_usage: "Transport Security"
+
+  # ==========================================================
+  # Java
+  # ==========================================================
+
+  - id: pqc-java-weak-hash
+    message: "PQC CBOM Finding (Crypto-Agility=No): Weak hash used (MD5/SHA-1) in Java."
+    languages: [java]
+    severity: ERROR
+    pattern-either:
+      - pattern: |
+          MessageDigest.getInstance("MD5")
+      - pattern: |
+          MessageDigest.getInstance("SHA-1")
+      - pattern: |
+          MessageDigest.getInstance("SHA1")
+    paths:
+      exclude: [target/, build/, dist/, out/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom, weak_crypto, hashing, java]
+      cbom:
+        cryptographic_function: "Hashing"
+        algorithm_used: "MD5/SHA1"
+        algorithm_category: "Hash"
+        library_module: "java.security.MessageDigest"
+        key_length: null
+        purpose_usage: "Hashing"
+
+  - id: pqc-java-rsa-keygen-inventory
+    message: "CBOM Inventory (PQC): RSA keypair generation detected in Java."
+    languages: [java]
+    severity: INFO
+    pattern-either:
+      - pattern: |
+          KeyPairGenerator.getInstance("RSA")
+      - pattern: |
+          KeyPairGenerator.getInstance("EC")
+      - pattern: |
+          Signature.getInstance("SHA256withRSA")
+      - pattern: |
+          Signature.getInstance("SHA256withECDSA")
+    paths:
+      exclude: [target/, build/, dist/, out/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom, inventory, asymmetric, java]
+      cbom:
+        cryptographic_function: "Signing/Verification"
+        algorithm_used: "RSA/ECDSA (Various)"
+        algorithm_category: "Asymmetric"
+        library_module: "java.security"
+        key_length: null
+        purpose_usage: "KeyGen/Signature"
+
+  - id: pqc-java-tls-verify-disabled
+    message: "Security Finding: Java TLS verification disabled via permissive TrustManager / HostnameVerifier."
+    languages: [java]
+    severity: ERROR
+    pattern-either:
+      - pattern: |
+          new X509TrustManager() { ... }
+      - pattern: |
+          (hostname, session) -> true
+      - pattern: |
+          HttpsURLConnection.setDefaultHostnameVerifier(...)
+    paths:
+      exclude: [target/, build/, dist/, out/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom, tls, weak_crypto, java]
+      cbom:
+        cryptographic_function: "Secure Channel"
+        algorithm_used: "TLS (Verification Disabled)"
+        algorithm_category: "TLS Misconfiguration"
+        library_module: "javax.net.ssl"
+        key_length: null
+        purpose_usage: "Transport Security"
+
+  # ==========================================================
+  # Go
+  # ==========================================================
+
+  - id: pqc-go-weak-hash
+    message: "PQC CBOM Finding (Crypto-Agility=No): Weak hash used (MD5/SHA1) in Go."
+    languages: [go]
+    severity: ERROR
+    pattern-either:
+      - pattern: |
+          md5.New()
+      - pattern: |
+          sha1.New()
+      - pattern: |
+          md5.Sum(...)
+      - pattern: |
+          sha1.Sum(...)
+    paths:
+      exclude: [vendor/, dist/, build/, out/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom, weak_crypto, hashing, go]
+      cbom:
+        cryptographic_function: "Hashing"
+        algorithm_used: "MD5/SHA1"
+        algorithm_category: "Hash"
+        library_module: "crypto/md5, crypto/sha1"
+        key_length: null
+        purpose_usage: "Hashing"
+
+  - id: pqc-go-tls-verify-disabled
+    message: "Security Finding: Go TLS certificate verification disabled (InsecureSkipVerify: true)."
+    languages: [go]
+    severity: ERROR
+    pattern-either:
+      - pattern: |
+          tls.Config{ ..., InsecureSkipVerify: true, ... }
+      - pattern: |
+          &tls.Config{ ..., InsecureSkipVerify: true, ... }
+    paths:
+      exclude: [vendor/, dist/, build/, out/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom, tls, weak_crypto, go]
+      cbom:
+        cryptographic_function: "Secure Channel"
+        algorithm_used: "TLS (Verification Disabled)"
+        algorithm_category: "TLS Misconfiguration"
+        library_module: "crypto/tls"
+        key_length: null
+        purpose_usage: "Transport Security"
+
+  - id: pqc-go-rsa-keygen-inventory
+    message: "CBOM Inventory (PQC): RSA key generation detected in Go."
+    languages: [go]
+    severity: INFO
+    pattern-either:
+      - pattern: |
+          rsa.GenerateKey(...)
+      - pattern: |
+          rsa.GenerateMultiPrimeKey(...)
+    paths:
+      exclude: [vendor/, dist/, build/, out/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom, inventory, rsa, go]
+      cbom:
+        cryptographic_function: "Key Generation"
+        algorithm_used: "RSA"
+        algorithm_category: "Asymmetric"
+        library_module: "crypto/rsa"
+        key_length: null
+        purpose_usage: "Key Pair Generation"
+
+  - id: pqc-go-rsa-keygen-weak
+    message: "Security Finding: Go RSA key generation uses weak key size (<2048)."
+    languages: [go]
+    severity: ERROR
+    patterns:
+      - pattern-either:
+          - pattern: |
+              rsa.GenerateKey(..., $BITS)
+          - pattern: |
+              rsa.GenerateMultiPrimeKey(..., $BITS)
+      - metavariable-comparison:
+          metavariable: $BITS
+          comparison: $BITS < 2048
+    paths:
+      exclude: [vendor/, dist/, build/, out/, coverage/, tests/, test/, __tests__/, fixtures/, docs/]
+    metadata:
+      tags: [pqc, cbom, weak_crypto, rsa, go]
+      cbom:
+        cryptographic_function: "Key Generation"
+        algorithm_used: "RSA"
+        algorithm_category: "Asymmetric"
+        library_module: "crypto/rsa"
+        key_length: "<2048"
+        purpose_usage: "Key Pair Generation"
+
+  # ==========================================================
+  # C# (.NET)
+  # ==========================================================
+
+  - id: pqc-csharp-weak-hash
+    message: "PQC CBOM Finding (Crypto-Agility=No): Weak hash used (MD5/SHA1) in .NET."
+    languages: [csharp]
+    severity: ERROR
+    pattern-either:
+      - pattern: |
+          MD5.Create()
+      - pattern: |
+          SHA1.Create()
+      - pattern: |
+          new MD5CryptoServiceProvider(...)
+      - pattern: |
+          new SHA1CryptoServiceProvider(...)
+    metadata:
+      tags: [pqc, cbom, weak_crypto, hashing, dotnet]
+      cbom:
+        cryptographic_function: "Hashing"
+        algorithm_used: "MD5/SHA1"
+        algorithm_category: "Hash"
+        library_module: "System.Security.Cryptography"
+        key_length: null
+        purpose_usage: "Hashing"
+
+  - id: pqc-csharp-tls-verify-disabled
+    message: "Security Finding: TLS certificate validation disabled in .NET."
+    languages: [csharp]
+    severity: ERROR
+    pattern-either:
+      - pattern: |
+          ServicePointManager.ServerCertificateValidationCallback = ...
+      - pattern: |
+          HttpClientHandler { ..., ServerCertificateCustomValidationCallback = ..., ... }
+      - pattern: |
+          HttpClientHandler { ..., ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true, ... }
+    metadata:
+      tags: [pqc, cbom, tls, weak_crypto, dotnet]
+      cbom:
+        cryptographic_function: "Secure Channel"
+        algorithm_used: "TLS (Verification Disabled)"
+        algorithm_category: "TLS Misconfiguration"
+        library_module: ".NET HttpClient / ServicePointManager"
+        key_length: null
+        purpose_usage: "Transport Security"
+
+  - id: pqc-csharp-rsa-inventory
+    message: "CBOM Inventory (PQC): RSA usage detected in .NET."
+    languages: [csharp]
+    severity: INFO
+    pattern-either:
+      - pattern: |
+          RSA.Create()
+      - pattern: |
+          RSACryptoServiceProvider(...)
+      - pattern: |
+          new RSACryptoServiceProvider(...)
+    metadata:
+      tags: [pqc, cbom, inventory, rsa, dotnet]
+      cbom:
+        cryptographic_function: "Key Management"
+        algorithm_used: "RSA"
+        algorithm_category: "Asymmetric"
+        library_module: "System.Security.Cryptography"
+        key_length: null
+        purpose_usage: "KeyGen/Encrypt/Sign"
+
+  - id: pqc-csharp-jwt-rs-es-inventory
+    message: "CBOM Inventory (PQC): JWT/JWS uses RSA/ECDSA algorithms (RS*/ES*) in .NET."
+    languages: [csharp]
+    severity: INFO
+    pattern-either:
+      - pattern: |
+          SecurityAlgorithms.RsaSha256
+      - pattern: |
+          SecurityAlgorithms.EcdsaSha256
+      - pattern: |
+          JwtSecurityTokenHandler(...)
+    metadata:
+      tags: [pqc, cbom, inventory, jwt, dotnet]
+      cbom:
+        cryptographic_function: "Signing/Verification"
+        algorithm_used: "JWT (RS*/ES*)"
+        algorithm_category: "Asymmetric Signature"
+        library_module: "Microsoft.IdentityModel.Tokens / System.IdentityModel.Tokens.Jwt"
+        key_length: null
+        purpose_usage: "Token Signing/Verification"
