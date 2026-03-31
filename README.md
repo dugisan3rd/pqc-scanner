@@ -11,12 +11,13 @@ pqc-scanner in python for SBOM & CBOM
    ```
    curl -sSfL https://get.anchore.io/syft | sudo sh -s -- -b /usr/local/bin
    ```
+3. Install `grype` binary.
+   ```
+   curl -sSfL https://get.anchore.io/grype | sudo sh -s -- -b /usr/local/bin
+   ```
 
 # Flow
-
-1. Check OS version using `scripts/initial_check.py`.
-2. If Linux,
-   1. Install `Syft` (SBOM) and `Grype` (VA).
-3. Else if Windows,
-   1. Use the pre downloaded binary in /bin.
-4.
+1. Run `pqc_auto_scan.py` to scan
+   ```
+   sudo python3 pqc_auto_scan.py --path testing/DVWA --server 127.0.0.1
+   ```

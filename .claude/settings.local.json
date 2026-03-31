@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l D:1.CloudOneDriveOneDrive - OrenG AcademyPersonal133710. GitGitHubpqc-scanner - Copyoutputraw/*.json)",
+      "Bash(xargs wc:*)",
+      "Bash(python3 -c \":*)",
+      "Bash(grep -E \"\\\\.\\(exe|bin\\)$|mini-pqc|grype|syft|semgrep\")"
+    ]
+  }
+}

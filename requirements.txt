@@ -7,3 +7,4 @@ semgrep
 jmespath
 jsonpath-ng
 pandas
+cryptography

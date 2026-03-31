@@ -1,25 +1,44 @@
 #!/usr/bin/env python3
-"""Generate PQC workbook (SBOM/CBOM/RiskRegister/RiskAssessment) from 4 JSON inputs.
+"""Generate PQC workbook matching BUKUKERJA_BENGKEL MIGRASI PQC 2025.xlsx format.
+
+Uses the reference template from bin/pqc_migration/ as a base, then populates
+the 4 data sheets (SBOM, CBOM, RiskRegister, RiskAssessment) with scan results.
+Static sheets (0_Inventory, 5_RiskMatrix, 6_ProtocolCryptoMap, 00_ReadMe) are
+preserved as-is from the template.
 
 Inputs:
   1) Syft SBOM JSON
   2) Grype vulnerability JSON
   3) Semgrep CBOM JSON
-  4) mini_pqc JSON (reserved for future linkage)
+  4) mini_pqc JSON (reserved)
 
 Usage:
-  python3 pqc_export_full.py --sbom 1_syft.json --grype 2_grype.json --cbom 4_semgrep_cbom.json --mini 3_mini_pqc.json --out pqc_report.xlsx
+  python3 pqc_export_full.py --sbom 1_syft.json --grype 2_grype.json \
+      --cbom 4_semgrep_cbom.json --mini 3_mini_pqc.json --out pqc_report.xlsx
 """
 
-import json, os
-from collections import defaultdict
-from openpyxl import Workbook
+import json, os, shutil
+from pathlib import Path
+from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font, Alignment, PatternFill
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+_HERE = Path(__file__).resolve().parent          # scripts/excel2/
+_ROOT = _HERE.parent.parent                      # repo root
+TEMPLATE_PATH = _ROOT / "bin" / "pqc_migration" / "BUKUKERJA_BENGKEL MIGRASI PQC 2025.xlsx"
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def load_json(path):
     with open(path, "r", encoding="utf-8", errors="replace") as f:
         return json.load(f)
+
 
 def autosize(ws, max_width=80):
     for col in ws.columns:
@@ -29,258 +48,1328 @@ def autosize(ws, max_width=80):
             v = cell.value
             if v is None:
                 continue
-            max_len = max(max_len, len(str(v)))
+            # handle multiline strings
+            max_len = max(max_len, max(len(ln) for ln in str(v).split("\n")))
         ws.column_dimensions[col_letter].width = min(max_len + 2, max_width)
 
-def style_header(ws, row=1):
-    fill = PatternFill("solid", fgColor="1F4E79")
-    font = Font(color="FFFFFF", bold=True)
-    align = Alignment(vertical="center", wrap_text=True)
-    for c in ws[row]:
-        c.fill = fill
-        c.font = font
-        c.alignment = align
-    ws.freeze_panes = "A2"
 
-def wrap_all(ws, start_row=2):
+def style_header_row(ws, row=4):
+    """Style the header row (row 4 in template format) with dark blue fill."""
+    fill  = PatternFill("solid", fgColor="1F4E79")
+    font  = Font(color="FFFFFF", bold=True, size=12)
+    align = Alignment(vertical="center", horizontal="center", wrap_text=True)
+    for c in ws[row]:
+        if c.value is not None:
+            c.fill  = fill
+            c.font  = font
+            c.alignment = align
+    ws.freeze_panes = f"A5"
+
+
+def wrap_data_rows(ws, start_row=5):
+    align = Alignment(vertical="top", wrap_text=True)
     for row in ws.iter_rows(min_row=start_row):
         for c in row:
-            c.alignment = Alignment(vertical="top", wrap_text=True)
+            c.alignment = align
+
+
+def populate_sheet(ws, headers, rows, header_row=4):
+    """
+    Replace header + all data rows (from `header_row` down) with new content.
+    Preserves rows 1–(header_row-1): title, description, blank preamble.
+    """
+    if ws.max_row >= header_row:
+        ws.delete_rows(header_row, ws.max_row - header_row + 1)
+    ws.append(headers)
+    style_header_row(ws, row=header_row)
+    for r in rows:
+        ws.append([r.get(h, "") for h in headers])
+    wrap_data_rows(ws, start_row=header_row + 1)
+    autosize(ws)
+
+
+# kept for backward compatibility with TLS/SSH/cert/config sheet writers
+def clear_data_rows(ws):
+    if ws.max_row >= 5:
+        ws.delete_rows(5, ws.max_row - 4)
+
+def append_rows(ws, headers, rows):
+    for r in rows:
+        ws.append([r.get(h, "") for h in headers])
+
+
+# ---------------------------------------------------------------------------
+# Severity helpers
+# ---------------------------------------------------------------------------
+
+_SEV_RANK = {
+    "critical": 4, "high": 3, "medium": 2,
+    "low": 1, "negligible": 0, "unknown": 0, "": 0, None: 0,
+}
+
 
 def worst_severity_rank(sev):
-    order = {"critical": 4, "high": 3, "medium": 2, "low": 1, "negligible": 0, "unknown": 0, "": 0, None: 0}
-    return order.get((sev or "").strip().lower(), 0)
+    return _SEV_RANK.get((sev or "").strip().lower(), 0)
+
 
 def worst_severity_to_level(sev):
-    sev = (sev or "").strip().lower()
-    if sev == "critical": return "Sangat Tinggi"
-    if sev == "high":     return "Tinggi"
-    if sev == "medium":   return "Sederhana"
-    if sev == "low":      return "Rendah"
-    if sev in ("negligible","unknown"): return "Rendah"
+    s = (sev or "").strip().lower()
+    if s == "critical": return "Sangat Tinggi"
+    if s == "high":     return "Tinggi"
+    if s == "medium":   return "Sederhana"
+    if s in ("low", "negligible", "unknown"): return "Rendah"
     return ""
+
+
+def score_to_risk_level(score: int) -> str:
+    """Map risk score (impact × likelihood) to label matching the Risk Matrix."""
+    if score >= 20: return "Risiko Sangat Tinggi"
+    if score >= 15: return "Risiko Tinggi"
+    if score >= 10: return "Risiko Sederhana"
+    if score >= 5:  return "Risiko Rendah"
+    return "Risiko Sangat Rendah"
+
+
+# ---------------------------------------------------------------------------
+# SBOM parsing
+# ---------------------------------------------------------------------------
 
 def parse_grype_worst_severity_by_pkg(grype):
     worst = {}
     for m in grype.get("matches") or []:
-        art = m.get("artifact") or {}
+        art  = m.get("artifact") or {}
         vuln = m.get("vulnerability") or {}
-        key = (art.get("name") or "", art.get("version") or "", art.get("type") or "")
-        sev = vuln.get("severity") or ""
+        key  = (art.get("name") or "", art.get("version") or "", art.get("type") or "")
+        sev  = vuln.get("severity") or ""
         if key not in worst or worst_severity_rank(sev) > worst_severity_rank(worst[key]):
             worst[key] = sev
     return worst
 
+
 def extract_project_name(sbom):
-    src = sbom.get("source") or {}
+    src    = sbom.get("source") or {}
     target = src.get("target") or ""
     if target:
         return os.path.basename(os.path.normpath(target)) or target
     return "UnknownProject"
 
+
+# ---------------------------------------------------------------------------
+# 0_Inventory — auto-populated from all scan sources
+# ---------------------------------------------------------------------------
+
+INVENTORY_HEADERS = [
+    "#", "Asset Type", "Asset Name / Identifier", "Location / Owner",
+    "Cryptographic Functionality Present?", "Examples of Algorithms Used",
+    "SBOM/CBOM Available?", "Migration Readiness Level", "Notes / Action Items",
+]
+
+_BROKEN_ALGOS   = {"md5", "sha1", "sha-1", "sha-2", "des", "3des", "rc4", "rc2",
+                    "blowfish", "seed", "idea", "rot13", "null"}
+_QWEAK_ALGOS    = {"rsa", "ecdsa", "ecdh", "dsa", "dh", "ed25519", "x25519",
+                    "aes-128", "aes128"}
+_PQC_INDICATORS = {"ml-kem", "ml-dsa", "kyber", "dilithium", "falcon",
+                    "sntrup", "mlkem", "sphincs", "frodo"}
+
+
+def _readiness(algos_text: str) -> str:
+    t = algos_text.lower()
+    if any(x in t for x in _PQC_INDICATORS) and not any(x in t for x in _BROKEN_ALGOS):
+        return "High"
+    if any(x in t for x in _BROKEN_ALGOS):
+        return "Very Low"
+    if any(x in t for x in _QWEAK_ALGOS):
+        return "Low"
+    if algos_text.strip():
+        return "Medium"
+    return "Unknown"
+
+
+def _mini_text(recs: list, module_id: int, kind: int = 1) -> str:
+    """Extract info-type text lines from a specific mini-pqc module."""
+    return "; ".join(
+        r["Text"] for r in recs
+        if r.get("ModuleID") == module_id and r.get("Kind") == kind
+    )
+
+
+def _mini_has_critical(recs: list, module_id: int) -> bool:
+    return any(r.get("Severity", 0) >= 3 and r.get("ModuleID") == module_id
+               for r in recs)
+
+
+def parse_inventory_rows(
+    sbom:        dict,
+    grype_worst: dict,
+    cbom_rows:   list,
+    mini_pqc:    dict | None = None,
+    tls_data:    dict | None = None,
+    ssh_data:    dict | None = None,
+    cert_data:   dict | None = None,
+    config_data: dict | None = None,
+) -> list:
+    """Build 0_Inventory rows from all available scan sources."""
+    rows = []
+    idx  = 0
+
+    def add(asset_type, name, location, crypto_present, algos, sbom_cbom, readiness, notes):
+        nonlocal idx
+        idx += 1
+        rows.append({
+            "#":                                   idx,
+            "Asset Type":                          asset_type,
+            "Asset Name / Identifier":             name,
+            "Location / Owner":                    location,
+            "Cryptographic Functionality Present?": crypto_present,
+            "Examples of Algorithms Used":         algos,
+            "SBOM/CBOM Available?":                sbom_cbom,
+            "Migration Readiness Level":           readiness,
+            "Notes / Action Items":                notes,
+        })
+
+    # ------------------------------------------------------------------ #
+    # 1. SBOM — scanned application / project                             #
+    # ------------------------------------------------------------------ #
+    project = extract_project_name(sbom)
+    pkg_count = len(sbom.get("artifacts") or [])
+    vuln_count = sum(1 for m in (grype_worst or {}).values() if m)
+    algos_from_cbom = ", ".join(sorted({
+        r.get("Algorithm Used", "") for r in cbom_rows
+        if r.get("Algorithm Used")
+    })[:6])
+    add(
+        asset_type  = "Application Stack",
+        name        = project,
+        location    = "Target Scan Path",
+        crypto_present = "Yes" if cbom_rows else "No",
+        algos       = algos_from_cbom or "(see CBOM sheet)",
+        sbom_cbom   = "Yes (SBOM + CBOM)",
+        readiness   = _readiness(algos_from_cbom),
+        notes       = (
+            f"{pkg_count} software component(s) in SBOM; "
+            f"{vuln_count} with known CVEs; "
+            f"{len(cbom_rows)} crypto usage finding(s) in CBOM."
+        ),
+    )
+
+    # ------------------------------------------------------------------ #
+    # 2. mini-pqc system findings (one row per detected component)         #
+    # ------------------------------------------------------------------ #
+    if mini_pqc:
+        recs = mini_pqc.get("recommendations") or []
+
+        # Operating System (Module 1)
+        os_text = _mini_text(recs, module_id=1, kind=1)
+        if os_text:
+            add(
+                asset_type  = "Operating System",
+                name        = os_text.split(";")[0][:80],
+                location    = mini_pqc.get("server_ip", "Scan Target"),
+                crypto_present = "Yes",
+                algos       = "Kernel crypto API, system libraries",
+                sbom_cbom   = "Yes (mini-pqc)",
+                readiness   = "Low" if _mini_has_critical(recs, 1) else "Medium",
+                notes       = (
+                    "Critical: Install OpenSSL 3.x for PQC provider support."
+                    if _mini_has_critical(recs, 1) else
+                    "Review mini-pqc recommendations for OS-level hardening."
+                ),
+            )
+
+        # OpenSSL (Module 11 + 14)
+        ssl_info = next(
+            (r["Text"] for r in recs
+             if r.get("ModuleID") in (11, 14) and "OpenSSL" in r.get("Text","")
+             and r.get("Kind") == 1),
+            None,
+        )
+        if ssl_info:
+            pqc_native = any(
+                "ML-KEM" in r.get("Text","") or "ML-DSA" in r.get("Text","")
+                for r in recs if r.get("ModuleID") == 14
+            )
+            add(
+                asset_type  = "Cryptographic Library",
+                name        = ssl_info[:80],
+                location    = mini_pqc.get("server_ip", "Scan Target"),
+                crypto_present = "Yes",
+                algos       = "RSA, AES, ECDSA, SHA-2" + (", ML-KEM, ML-DSA" if pqc_native else ""),
+                sbom_cbom   = "Yes (mini-pqc)",
+                readiness   = "High" if pqc_native else "Low",
+                notes       = (
+                    "OpenSSL 3.5+ with native ML-KEM/ML-DSA support detected. Verify OQS provider for additional PQC algorithms."
+                    if pqc_native else
+                    "Upgrade to OpenSSL 3.5+ for native ML-KEM (FIPS 203) and ML-DSA (FIPS 204) support."
+                ),
+            )
+
+        # OpenSSH (Module 6)
+        ssh_server = next(
+            (r["Text"] for r in recs
+             if r.get("ModuleID") == 6 and "Server" in r.get("Text","")
+             and r.get("Kind") == 1),
+            None,
+        )
+        if ssh_server and "Not installed" not in ssh_server:
+            pqc_ssh = any(
+                "hybrid" in r.get("Text","").lower() or "sntrup" in r.get("Text","").lower()
+                for r in recs if r.get("ModuleID") == 6
+            )
+            add(
+                asset_type  = "Network Service (SSH)",
+                name        = ssh_server[:80],
+                location    = mini_pqc.get("server_ip", "Scan Target"),
+                crypto_present = "Yes",
+                algos       = "ECDH, RSA, AES, ChaCha20" + (", sntrup761x25519" if pqc_ssh else ""),
+                sbom_cbom   = "Yes (mini-pqc)",
+                readiness   = "Medium" if pqc_ssh else "Low",
+                notes       = (
+                    "PQC-hybrid KEX detected in SSH. Verify sntrup761x25519 is preferred."
+                    if pqc_ssh else
+                    "Upgrade to OpenSSH 8.5+ and add sntrup761x25519-sha512 to KexAlgorithms."
+                ),
+            )
+
+        # Web Server / Nginx (Module 5)
+        nginx_info = next(
+            (r["Text"] for r in recs
+             if r.get("ModuleID") == 5 and r.get("Kind") == 1),
+            None,
+        )
+        if nginx_info and "Not installed" not in nginx_info:
+            add(
+                asset_type  = "Web Server",
+                name        = nginx_info[:80],
+                location    = mini_pqc.get("server_ip", "Scan Target"),
+                crypto_present = "Yes",
+                algos       = "TLS (see TLS scan sheet)",
+                sbom_cbom   = "Yes (mini-pqc)",
+                readiness   = "Low",
+                notes       = _mini_text(recs, module_id=5, kind=0)[:200] or
+                              "Configure with OpenSSL 3.x + OQS provider for PQC TLS support.",
+            )
+
+        # Java (Module 10)
+        java_info = next(
+            (r["Text"] for r in recs
+             if r.get("ModuleID") == 10 and "Java" in r.get("Text","")
+             and r.get("Kind") == 1),
+            None,
+        )
+        if java_info and "Not installed" not in java_info:
+            add(
+                asset_type  = "Runtime Environment",
+                name        = java_info[:80],
+                location    = mini_pqc.get("server_ip", "Scan Target"),
+                crypto_present = "Yes",
+                algos       = "RSA, AES, ECDSA (JCA/JCE)",
+                sbom_cbom   = "Yes (mini-pqc)",
+                readiness   = "Low",
+                notes       = (
+                    "Add BouncyCastle PQC provider (BCPQC) for ML-KEM/ML-DSA support. "
+                    "Java 21+ includes experimental PQC in SunEC provider."
+                ),
+            )
+
+    # ------------------------------------------------------------------ #
+    # 3. Application components from CBOM (one row per distinct app)       #
+    # ------------------------------------------------------------------ #
+    app_algos: dict[str, set] = {}
+    for r in cbom_rows:
+        app = r.get("System / Application", "")
+        algo = r.get("Algorithm Used", "")
+        if app and algo:
+            app_algos.setdefault(app, set()).add(algo)
+
+    for app_name, algos_set in app_algos.items():
+        algos_str = ", ".join(sorted(algos_set)[:6])
+        add(
+            asset_type  = "Application Code",
+            name        = app_name,
+            location    = "Target Scan Path",
+            crypto_present = "Yes",
+            algos       = algos_str,
+            sbom_cbom   = "Yes (CBOM)",
+            readiness   = _readiness(algos_str),
+            notes       = (
+                f"{len(algos_set)} distinct cryptographic algorithm(s) detected. "
+                "See 2_CBOM sheet for file-level details and 4_RiskAssessment for mitigation."
+            ),
+        )
+
+    # ------------------------------------------------------------------ #
+    # 4. TLS network services                                              #
+    # ------------------------------------------------------------------ #
+    if tls_data:
+        for chk in tls_data.get("tls_checks", []):
+            err = chk.get("error", "")
+            host = chk.get("hostname", "")
+            port = chk.get("port", 443)
+            cipher_d = chk.get("cipher_suite") or {}
+            tls_ver  = chk.get("tls_version", "?")
+            cipher   = cipher_d.get("name", "")
+            pqc_ind  = chk.get("pqc_indicators", [])
+            weak     = chk.get("weak_findings", [])
+            if err:
+                add(
+                    asset_type  = "Network Service (TLS)",
+                    name        = f"{host}:{port}",
+                    location    = host,
+                    crypto_present = "Unknown",
+                    algos       = "(connection error)",
+                    sbom_cbom   = "No",
+                    readiness   = "Unknown",
+                    notes       = f"TLS scan error: {err}",
+                )
+            else:
+                algos_str = f"{tls_ver}, {cipher}" if cipher else tls_ver
+                add(
+                    asset_type  = "Network Service (TLS)",
+                    name        = f"{host}:{port}",
+                    location    = host,
+                    crypto_present = "Yes",
+                    algos       = algos_str,
+                    sbom_cbom   = "Yes (TLS scan)",
+                    readiness   = "High" if pqc_ind else ("Low" if weak else "Medium"),
+                    notes       = (
+                        f"PQC indicator: {', '.join(pqc_ind)}." if pqc_ind else
+                        f"{len(weak)} weak finding(s). Migrate to ML-KEM hybrid KEM in TLS 1.3."
+                    ),
+                )
+
+    # ------------------------------------------------------------------ #
+    # 5. SSH network services                                              #
+    # ------------------------------------------------------------------ #
+    if ssh_data:
+        for chk in ssh_data.get("ssh_checks", []):
+            err  = chk.get("error", "")
+            host = chk.get("hostname", "")
+            port = chk.get("port", 22)
+            banner = chk.get("banner", "")
+            kex  = (chk.get("kex_init") or {}).get("kex_algorithms", [])
+            pqc_ind = chk.get("pqc_indicators", [])
+            weak    = chk.get("weak_findings", [])
+            if err:
+                add(
+                    asset_type  = "Network Service (SSH)",
+                    name        = f"{host}:{port}",
+                    location    = host,
+                    crypto_present = "Unknown",
+                    algos       = "(connection error)",
+                    sbom_cbom   = "No",
+                    readiness   = "Unknown",
+                    notes       = f"SSH scan error: {err}",
+                )
+            else:
+                kex_str = ", ".join(kex[:4]) + ("..." if len(kex) > 4 else "")
+                add(
+                    asset_type  = "Network Service (SSH)",
+                    name        = f"{host}:{port} ({banner})" if banner else f"{host}:{port}",
+                    location    = host,
+                    crypto_present = "Yes",
+                    algos       = kex_str,
+                    sbom_cbom   = "Yes (SSH scan)",
+                    readiness   = "High" if pqc_ind else ("Low" if weak else "Medium"),
+                    notes       = (
+                        f"PQC-hybrid KEX: {', '.join(pqc_ind)}." if pqc_ind else
+                        f"{len(weak)} weak algorithm(s). Add sntrup761x25519-sha512@openssh.com to KexAlgorithms."
+                    ),
+                )
+
+    # ------------------------------------------------------------------ #
+    # 6. Certificate / PKI files                                           #
+    # ------------------------------------------------------------------ #
+    if cert_data:
+        cert_entries = cert_data.get("cert_file_scan", [])
+        total_certs  = len(cert_entries)
+        total_findings = cert_data.get("summary", {}).get("total_findings", 0)
+        if cert_entries:
+            algos_found = ", ".join(sorted({
+                e.get("algorithm", "") for e in cert_entries if e.get("algorithm")
+            })[:6])
+            expired  = sum(1 for e in cert_entries
+                          for f in e.get("findings", []) if "Expired" in f.get("type",""))
+            priv_keys = sum(1 for e in cert_entries if e.get("type") == "Private Key")
+            add(
+                asset_type  = "Certificate / PKI",
+                name        = f"Certificate Files ({total_certs} found)",
+                location    = "Target Scan Path",
+                crypto_present = "Yes",
+                algos       = algos_found or "(various)",
+                sbom_cbom   = "Yes (cert scan)",
+                readiness   = _readiness(algos_found),
+                notes       = (
+                    f"{total_certs} cert/key file(s) found; "
+                    f"{expired} expired; "
+                    f"{priv_keys} private key file(s) — consider HSM storage; "
+                    f"{total_findings} total finding(s). See 7_CertFiles sheet."
+                ),
+            )
+
+    # ------------------------------------------------------------------ #
+    # 7. Configuration files with crypto findings                          #
+    # ------------------------------------------------------------------ #
+    if config_data:
+        config_entries = config_data.get("config_scan", [])
+        total_findings = config_data.get("summary", {}).get("total_findings", 0)
+        if config_entries:
+            all_findings = [f for e in config_entries for f in e.get("findings",[])]
+            critical_n = sum(1 for f in all_findings if f.get("severity") == "Critical")
+            high_n     = sum(1 for f in all_findings if f.get("severity") == "High")
+            types_str  = ", ".join(sorted({f.get("finding_type","") for f in all_findings[:10]}))
+            add(
+                asset_type  = "Configuration Files",
+                name        = f"Server/App Config ({len(config_entries)} file(s) with findings)",
+                location    = "Target Scan Path",
+                crypto_present = "Yes",
+                algos       = types_str[:80] or "(weak cipher/protocol strings found)",
+                sbom_cbom   = "Yes (config scan)",
+                readiness   = "Very Low" if critical_n > 0 else ("Low" if high_n > 0 else "Medium"),
+                notes       = (
+                    f"{total_findings} finding(s): "
+                    f"{critical_n} Critical, {high_n} High. "
+                    "See 8_ConfigFiles sheet for file-level details."
+                ),
+            )
+
+    return rows
+
+
 def extract_url_from_syft_artifact(art):
     md = art.get("metadata") or {}
     if isinstance(md, dict):
         for k in ("homepage", "url"):
-            if md.get(k): return md.get(k)
+            if md.get(k):
+                return md[k]
         src = md.get("source")
-        if isinstance(src, dict) and src.get("url"): return src.get("url")
+        if isinstance(src, dict) and src.get("url"):
+            return src["url"]
         dist = md.get("dist")
-        if isinstance(dist, dict) and dist.get("url"): return dist.get("url")
+        if isinstance(dist, dict) and dist.get("url"):
+            return dist["url"]
     return ""
 
-def parse_syft_sbom_rows(sbom, grype_worst):
+
+def parse_sbom_rows(sbom, grype_worst):
     project = extract_project_name(sbom)
     rows = []
     for i, art in enumerate(sbom.get("artifacts") or [], start=1):
-        name = art.get("name") or ""
+        name    = art.get("name") or ""
         version = art.get("version") or ""
-        typ = art.get("type") or ""
-        url = extract_url_from_syft_artifact(art)
-        worst_sev = grype_worst.get((name, version, typ), "")
+        typ     = art.get("type") or ""
+        url     = extract_url_from_syft_artifact(art)
+        worst   = grype_worst.get((name, version, typ), "")
         rows.append({
-            "#": i,
-            "System / Application": project,
-            "Purpose / Usage": "",
-            "URL": url,
-            "Services Mode": "",
-            "Target Customer": "",
-            "Software Component": f"{name} {version}".strip(),
-            "Third-party Modules": "",
-            "External APIs or Services": "",
-            "Critical Level": worst_severity_to_level(worst_sev),
-            "Data Category": "",
-            "Is the application/system currently in use?": "",
-            "Application/System Developer": "",
-            "Vendor's Name": "",
-            "Does the agency have expertise?": "",
+            "#":                                          i,
+            "System / Application":                       project,
+            "Purpose / Usage":                            "",
+            "URL":                                        url,
+            "Services Mode":                              "",
+            "Target Customer":                            "",
+            "Software Component":                         f"{name} {version}".strip(),
+            "Third-party Modules":                        "",
+            "External APIs or Services":                  "",
+            "Critical Level":                             worst_severity_to_level(worst),
+            "Data Category":                              "",
+            "Is the application/system currently in use?":"",
+            "Application/System Developer":               "",
+            "Vendor's Name":                              "",
+            "Does the agency have expertise?":            "",
             "Does the agency have a special budget allocation?": "",
-            "Link to CBOM": f"CBOM ({project})"
+            "Link to CBOM":                               f"CBOM ({project})",
         })
     return rows
 
-def parse_cbom_rows(cbom):
-    results = []
+
+# ---------------------------------------------------------------------------
+# CBOM parsing — deduplicated, with file path + line number
+# ---------------------------------------------------------------------------
+
+def _get_path(r: dict) -> str:
+    path = r.get("path") or ""
+    if not path:
+        locs = r.get("locations") or []
+        if locs:
+            al   = ((locs[0].get("physicalLocation") or {}).get("artifactLocation") or {})
+            path = al.get("uri") or ""
+    return path
+
+
+def _pick(meta: dict, *keys, default="") -> str:
+    for k in keys:
+        if k in meta and meta[k] not in (None, "", {}):
+            return str(meta[k])
+    return default
+
+
+def _shorten_path(path: str) -> str:
+    """Return the last 3 path segments so it fits in a cell."""
+    if not path:
+        return ""
+    parts = Path(path).parts
+    return str(Path(*parts[-3:])) if len(parts) >= 3 else path
+
+
+def _extract_app_name(path: str) -> str:
+    """
+    Infer the application/module name from the file path.
+    Takes the 3rd-from-last directory segment (project root heuristic).
+    e.g. .../testing/DVWA/dvwa/includes/file.php → DVWA
+    """
+    if not path:
+        return "(Unknown)"
+    parts = Path(path).parts
+    # Walk upward looking for the first "meaningful" directory name
+    # (skip common generic names like 'includes', 'src', 'lib', 'app')
+    _SKIP = {"includes", "src", "lib", "app", "core", "modules", "classes",
+              "vendor", "node_modules", "dist", "build", "assets", "static",
+              "public", "private", "common", "util", "utils", "helper", "helpers"}
+    for seg in reversed(parts[:-1]):
+        if seg and seg not in _SKIP and not seg.startswith("."):
+            return seg
+    return parts[-2] if len(parts) >= 2 else "(Unknown)"
+
+
+def parse_cbom_rows(cbom: dict) -> list:
+    """
+    Parse Semgrep CBOM JSON into deduplicated rows.
+    Deduplication key: (file_path, line_number, algorithm).
+    When multiple rules fire on the same location, the best mitigation,
+    PQC risk, and vulnerability description are merged.
+    """
+    raw_results = []
     if isinstance(cbom, dict):
         if isinstance(cbom.get("results"), list):
-            results = cbom["results"]
+            raw_results = cbom["results"]
         elif isinstance(cbom.get("runs"), list):
-            results = (cbom["runs"][0].get("results") or []) if cbom["runs"] else []
+            raw_results = (cbom["runs"][0].get("results") or []) if cbom["runs"] else []
 
-    def best_location(r):
-        path = r.get("path") or ""
-        line = None
-        if isinstance(r.get("start"), dict):
-            line = r["start"].get("line")
-        if not path:
-            locs = r.get("locations") or []
-            if locs:
-                pl = (locs[0].get("physicalLocation") or {})
-                al = (pl.get("artifactLocation") or {})
-                path = al.get("uri") or ""
-                region = pl.get("region") or {}
-                line = region.get("startLine")
-        return path, line
+    # --- deduplicate by (path, line, algo) ---
+    merged: dict = {}   # key → dict of best fields
 
-    def pick(meta, *keys, default=""):
-        for k in keys:
-            if k in meta and meta[k] not in (None, ""):
-                return meta[k]
-        return default
+    for r in raw_results:
+        meta     = ((r.get("extra") or {}).get("metadata") or {})
+        cbom_m   = meta.get("cbom") or {}
+        path     = _get_path(r)
+        line     = (r.get("start") or {}).get("line", "")
+        algo     = _pick(cbom_m, "algorithm_used") or _pick(meta, "algorithm_name", "algorithm_used", "algorithm")
+        func     = _pick(cbom_m, "cryptographic_function") or _pick(meta, "cryptographic_function", "crypto_function")
+        lib      = _pick(cbom_m, "library_module") or _pick(meta, "library_module", "library", "module")
+        key_len  = _pick(cbom_m, "key_length") or _pick(meta, "key_length", "keylen")
+        purpose  = _pick(cbom_m, "purpose_usage") or _pick(meta, "purpose_usage", "purpose", "usage")
+        agility  = _pick(meta, "crypto_agility_support", "crypto_agility", "agility")
+        pqc_risk = _pick(meta, "pqc_risk")
+        mitigation = _pick(meta, "recommended_mitigation")
+        vuln     = _pick(meta, "vulnerability")
+        message  = _pick(r.get("extra") or {}, "message")
 
+        dedup_key = (path, str(line), (algo or "").lower())
+
+        if dedup_key not in merged:
+            merged[dedup_key] = {
+                "path":       path,
+                "line":       line,
+                "algo":       algo,
+                "func":       func,
+                "lib":        lib,
+                "key_len":    key_len,
+                "purpose":    purpose,
+                "agility":    agility,
+                "pqc_risk":   "",
+                "mitigation": "",
+                "vuln":       "",
+                "message":    "",
+            }
+
+        slot = merged[dedup_key]
+        # Always prefer more specific data over empty
+        if pqc_risk   and not slot["pqc_risk"]:   slot["pqc_risk"]   = pqc_risk
+        if mitigation  and not slot["mitigation"]:  slot["mitigation"] = mitigation
+        if vuln        and not slot["vuln"]:        slot["vuln"]       = vuln
+        if message     and not slot["message"]:     slot["message"]    = message
+        if func        and not slot["func"]:        slot["func"]       = func
+        if lib         and not slot["lib"]:         slot["lib"]        = lib
+        if purpose     and not slot["purpose"]:     slot["purpose"]    = purpose
+        if agility     and not slot["agility"]:     slot["agility"]    = agility
+
+    # --- build output rows ---
     rows = []
-    for idx, r in enumerate(results, start=1):
-        meta = ((r.get("extra") or {}).get("metadata") or {})
-        path, line = best_location(r)
-        file_loc = path or ""
-        if line:
-            file_loc = f"{file_loc} (line {line})"
+    for idx, slot in enumerate(merged.values(), start=1):
+        app_name   = _extract_app_name(slot["path"])
+        short_path = _shorten_path(slot["path"])
+        finding    = slot["vuln"] or (slot["message"][:120] if slot["message"] else "")
+
         rows.append({
-            "# (CBOM)": f"2.{idx}",
-            "System / Application": pick(meta, "system_application","system","application", default="(Unknown)"),
-            "Cryptographic Function": pick(meta, "cryptographic_function","crypto_function","function"),
-            "Algorithm Used": pick(meta, "algorithm_used","algorithm","alg"),
-            "Algorithm Category": pick(meta, "algorithm_category","category"),
-            "Library / Module": pick(meta, "library_module","library","module"),
-            "File / Location": file_loc,
-            "Key Length": pick(meta, "key_length","keylen"),
-            "Purpose / Usage": pick(meta, "purpose_usage","purpose","usage"),
-            "Crypto-Agility Support": pick(meta, "crypto_agility_support","crypto_agility","agility"),
+            "# (CBOM)":               f"CBOM #{idx}",
+            "System / Application":   app_name,
+            "File Path":              short_path,
+            "Line":                   slot["line"],
+            "Cryptographic Function": slot["func"],
+            "Algorithm Used":         slot["algo"],
+            "Library / Module":       slot["lib"],
+            "Key Length":             slot["key_len"],
+            "Purpose / Usage":        slot["purpose"],
+            "PQC Risk":               slot["pqc_risk"],
+            "Crypto-Agility Support": slot["agility"],
+            "Finding / Vulnerability": finding,
+            # private — used by risk generator, not written to sheet
+            "_path":       slot["path"],
+            "_line":       slot["line"],
+            "_mitigation": slot["mitigation"],
         })
     return rows
 
-def risk_templates_from_cbom(cbom_rows):
-    rr, ra = [], []
+
+# ---------------------------------------------------------------------------
+# Risk Register & Risk Assessment — algorithm-specific, uses Semgrep metadata
+# ---------------------------------------------------------------------------
+
+def _classify_algo(algo: str, func: str) -> str:
+    """Return one of: asym | hash_weak | hash_strong | sym_weak | sym_strong | rng | obfuscation | other"""
+    a, f = algo.lower(), func.lower()
+    if any(x in a for x in ["rsa", "ecdsa", "ecdh", "dsa", " dh", "ed25519", "x25519", "x448", "kyber", "dilithium", "falcon", "ml-kem", "ml-dsa"]):
+        return "asym"
+    if any(x in a for x in ["md5", "sha-1", "sha1"]):
+        return "hash_weak"
+    if any(x in a for x in ["sha-256", "sha256", "sha-384", "sha-512", "sha3", "blake"]):
+        return "hash_strong"
+    if any(x in a for x in ["des", "3des", "rc4", "rc2", "blowfish", "seed", "idea", "ecb"]):
+        return "sym_weak"
+    if any(x in a for x in ["aes", "chacha20", "chacha"]):
+        return "sym_strong"
+    if any(x in a for x in ["rand", "mt_rand", "uniqid", "math.random"]) or "rng" in f or "random" in f:
+        return "rng"
+    if any(x in a for x in ["base64", "rot13", "hex"]):
+        return "obfuscation"
+    return "other"
+
+
+def _risk_for_algo(kind: str, algo: str, func: str, purpose: str, file_base: str, line) -> tuple:
+    """
+    Returns (risiko_rr, risiko_ra, punca_risiko, tahap_kritikal, impak, likelihood, kawalan)
+    All strings are actionable and specific to the algorithm class.
+    """
+    loc = f"{file_base}:{line}" if line else file_base
+
+    if kind == "asym":
+        risiko_rr = (
+            f"Kelemahan PQC: Algoritma asimetri {algo} terdedah kepada Algoritma Shor — "
+            f"kunci dan tandatangan boleh dipecahkan oleh komputer kuantum (CRQC)"
+        )
+        risiko_ra = "Pendedahan kepada Algoritma Shor (Quantum Integer Factorization / Discrete Logarithm)"
+        punca = (
+            f"Algoritma {algo} digunakan untuk '{purpose or func}' dalam {loc}. "
+            f"Semua skema berasaskan masalah faktorisasi integer dan logaritma diskret "
+            f"(RSA, ECC, DH, DSA) akan dipecahkan dalam masa O(log³N) oleh Algoritma Shor "
+            f"pada CRQC dengan ~ 4096 qubit logik yang stabil."
+        )
+        tahap   = "Kritikal"
+        impak   = 5
+        like    = 5
+        kawalan = (
+            "Infrastruktur PKI X.509 sedia ada; pematuhan TLS 1.3; "
+            "Dasar keselamatan siber organisasi. "
+            "TIADA kawalan yang mencukupi untuk ancaman kuantum."
+        )
+
+    elif kind == "hash_weak":
+        risiko_rr = (
+            f"Kelemahan Kriptografi: Fungsi hash {algo} telah dipecahkan — "
+            f"serangan collision dan pra-imej boleh dilakukan"
+        )
+        risiko_ra = "Pendedahan kepada serangan collision (MD5 sejak 2004, SHA-1: SHAttered 2017)"
+        punca = (
+            f"{algo} digunakan untuk '{purpose or func}' dalam {loc}. "
+            f"MD5 collision boleh dijana dalam < 1 saat pada perkakasan biasa. "
+            f"SHA-1 collision pertama dibuktikan oleh Google (SHAttered, 2017). "
+            f"Kedua-dua tidak selamat untuk mana-mana tujuan keselamatan."
+        )
+        tahap   = "Kritikal"
+        impak   = 4
+        like    = 4
+        kawalan = (
+            "Semakan kod statik (SAST) standard; dasar penggunaan hash organisasi. "
+            "Kawalan tidak mencukupi — MD5/SHA-1 masih digunakan dalam kod aktif."
+        )
+
+    elif kind == "hash_strong":
+        risiko_rr = (
+            f"Pertimbangan PQC: Fungsi hash {algo} selamat secara klasik tetapi "
+            f"kekuatan berkesan dikurangkan 50% oleh Algoritma Grover"
+        )
+        risiko_ra = "Pendedahan separa kepada Algoritma Grover (Quantum Search)"
+        punca = (
+            f"{algo} digunakan untuk '{purpose or func}' dalam {loc}. "
+            f"Algoritma Grover mengurangkan kekuatan berkesan dari N bit kepada N/2 bit. "
+            f"SHA-256 (256-bit) → berkesan 128-bit di era kuantum. Masih selamat jika saiz output mencukupi."
+        )
+        tahap   = "Sederhana"
+        impak   = 2
+        like    = 2
+        kawalan = (
+            f"Penggunaan {algo} adalah pematuhan NIST semasa. "
+            "Pantauan perkembangan piawaian PQC NIST berterusan."
+        )
+
+    elif kind == "sym_weak":
+        risiko_rr = (
+            f"Kelemahan Kriptografi: Sifer simetri usang {algo} — "
+            f"terdedah kepada serangan penyahsulitan dan serangan ke atas blok pendek"
+        )
+        risiko_ra = f"Sifer {algo} lemah/usang — serangan brute-force dan known-plaintext boleh dilakukan"
+        punca = (
+            f"{algo} digunakan untuk '{purpose or func}' dalam {loc}. "
+            f"DES/3DES terdedah kepada Sweet32 (CVE-2016-2183, blok 64-bit). "
+            f"RC4 telah dipecahkan sepenuhnya (RFC 7465). "
+            f"Semua sifer warisan ini telah dialih keluar dari TLS 1.3."
+        )
+        tahap   = "Kritikal"
+        impak   = 4
+        like    = 3
+        kawalan = (
+            "Dasar TLS organisasi (mungkin melarang RC4). "
+            "Namun kawalan tidak dipatuhi dalam kod aplikasi — sifer lemah masih digunakan."
+        )
+
+    elif kind == "sym_strong":
+        risiko_rr = (
+            f"Pertimbangan PQC: Sifer simetri {algo} selamat secara klasik; "
+            f"kekuatan berkesan dikurangkan 50% oleh Algoritma Grover"
+        )
+        risiko_ra = "Pendedahan separa kepada Algoritma Grover (Quantum Search)"
+        punca = (
+            f"{algo} digunakan untuk '{purpose or func}' dalam {loc}. "
+            f"AES-128 berkesan menjadi ~64-bit di era kuantum (tidak mencukupi). "
+            f"AES-256 berkesan menjadi ~128-bit — masih selamat menurut NIST SP 800-227."
+        )
+        tahap   = "Rendah"
+        impak   = 2
+        like    = 2
+        kawalan = (
+            f"Penggunaan {algo} adalah pematuhan NIST semasa. "
+            "Pastikan mod AEAD (GCM) digunakan dan saiz kunci ≥ 256-bit."
+        )
+
+    elif kind == "rng":
+        risiko_rr = (
+            f"Kelemahan Keselamatan: Penjana nombor rawak tidak selamat ({algo}) "
+            f"boleh menjejaskan kerahsiaan kunci, token, dan sesi"
+        )
+        risiko_ra = "Penjana nombor rawak boleh diramal — kunci dan token kripto boleh diterka"
+        punca = (
+            f"{algo} digunakan untuk '{purpose or func}' dalam {loc}. "
+            f"Fungsi seperti rand(), mt_rand(), Math.random(), dan uniqid() BUKAN CSPRNG. "
+            f"Entropi rendah membolehkan penyerang menjangka nilai yang dijana."
+        )
+        tahap   = "Tinggi"
+        impak   = 4
+        like    = 3
+        kawalan = (
+            "Semakan kod statik (SAST) standard. "
+            "Kawalan tidak mencukupi — CSPRNG tidak dikuatkuasakan dalam kod."
+        )
+
+    elif kind == "obfuscation":
+        risiko_rr = (
+            f"Kelemahan Reka Bentuk: {algo} digunakan sebagai 'penyulitan' "
+            f"tetapi tidak memberikan kerahsiaan kriptografi"
+        )
+        risiko_ra = f"Salah faham kriptografi — {algo} bukan penyulitan, data masih boleh dihuraikan"
+        punca = (
+            f"{algo} digunakan sebagai pengganti penyulitan dalam {loc}. "
+            f"Base64 adalah pengekodan (encoding) bukan penyulitan — sesiapa boleh nyahkod. "
+            f"ROT13 adalah penggantian mudah — tiada keselamatan kriptografi."
+        )
+        tahap   = "Tinggi"
+        impak   = 3
+        like    = 4
+        kawalan = (
+            "Tiada kawalan kriptografi yang sedia ada bagi kes ini. "
+            "Data mungkin kelihatan 'tersembunyi' tetapi tidak dilindungi."
+        )
+
+    else:
+        risiko_rr = f"Penggunaan kriptografi ({algo}) memerlukan semakan dan pengkelasan PQC"
+        risiko_ra = "Pendedahan PQC tidak dapat ditentukan — pengkelasan lanjut diperlukan"
+        punca = (
+            f"Penggunaan {algo} ({func}) dalam {loc} tidak dapat dikelaskan secara automatik. "
+            f"Semakan manual diperlukan untuk menentukan risiko PQC."
+        )
+        tahap   = "Sederhana"
+        impak   = 3
+        like    = 2
+        kawalan = "Semakan kod manual dan inventori kriptografi organisasi."
+
+    return risiko_rr, risiko_ra, punca, tahap, impak, like, kawalan
+
+
+def _mitigation_plan(kind: str, algo: str, semgrep_mitigation: str) -> str:
+    """
+    Return a specific mitigation plan.
+    Prefers Semgrep's own recommended_mitigation; enriches it with NIST references.
+    """
+    nist_suffix = {
+        "asym": (
+            "\nMigrasi kepada:\n"
+            "  • ML-KEM (CRYSTALS-Kyber) — NIST FIPS 203: pertukaran kunci / KEM\n"
+            "  • ML-DSA (CRYSTALS-Dilithium) — NIST FIPS 204: tandatangan digital\n"
+            "  • SLH-DSA (SPHINCS+) — NIST FIPS 205: tandatangan berasaskan hash\n"
+            "Langkah interim: gunakan RSA-3072 / ECDSA P-384 minimum sambil menunggu migrasi penuh."
+        ),
+        "hash_weak": (
+            "\nGantikan dengan:\n"
+            "  • SHA-256 atau SHA-3-256 (minimum)\n"
+            "  • SHA-512 atau SHA-3-512 untuk aplikasi kritikal\n"
+            "  • Untuk hash kata laluan: gunakan Argon2id (OWASP recommended)"
+        ),
+        "sym_weak": (
+            "\nGantikan dengan:\n"
+            "  • AES-256-GCM (AEAD — disyorkan)\n"
+            "  • ChaCha20-Poly1305 (alternatif AEAD)\n"
+            "  • Jangan sekali-kali gunakan mod ECB"
+        ),
+        "rng": (
+            "\nGantikan dengan:\n"
+            "  • PHP: random_bytes() / random_int()\n"
+            "  • Python: secrets.token_bytes() / os.urandom()\n"
+            "  • JavaScript: crypto.getRandomValues() / crypto.randomBytes()\n"
+            "  • Java: SecureRandom"
+        ),
+        "obfuscation": (
+            "\nJika kerahsiaan diperlukan, gunakan penyulitan sebenar:\n"
+            "  • AES-256-GCM (simetri)\n"
+            "  • Atau gunakan pustaka kriptografi seperti libsodium / NaCl"
+        ),
+    }
+
+    base = semgrep_mitigation.strip() if semgrep_mitigation else ""
+    suffix = nist_suffix.get(kind, "")
+
+    if base and suffix:
+        return base + suffix
+    elif base:
+        return base
+    elif suffix:
+        return suffix.strip()
+    else:
+        return "Lakukan inventori kriptografi dan ikuti panduan migrasi PQC NIST SP 800-227."
+
+
+def risk_rows_from_cbom(cbom_rows: list) -> tuple:
+    rr_rows, ra_rows = [], []
+
     for i, row in enumerate(cbom_rows, start=1):
-        sys_app = row.get("System / Application","")
-        algo = row.get("Algorithm Used","")
-        cat = (row.get("Algorithm Category") or "").lower()
-        func = (row.get("Cryptographic Function") or "").lower()
+        algo    = row.get("Algorithm Used", "") or ""
+        func    = row.get("Cryptographic Function", "") or ""
+        purpose = row.get("Purpose / Usage", "") or ""
+        app     = row.get("System / Application", "")
+        file_path = row.get("_path", row.get("File Path", ""))
+        line    = row.get("_line", row.get("Line", ""))
+        semgrep_mit = row.get("_mitigation", "")
 
-        is_asym = any(x in cat for x in ["asymmetric","ecc","rsa","dsa","ecdsa","ecdh","signature","kem"]) or any(x in (algo or "").lower() for x in ["rsa","ecdsa","ecdh","dsa","dh","ed25519"])
-        is_hash = "hash" in cat or "hash" in func or any(x in (algo or "").lower() for x in ["md5","sha1","sha-1","sha256","sha-256","sha3","sha-3","blake","ripemd"])
-        is_sym = any(x in cat for x in ["symmetric","aead","cipher"]) or any(x in (algo or "").lower() for x in ["aes","chacha","3des","des","rc4","blowfish"])
+        file_base = os.path.basename(file_path) if file_path else app
+        kind      = _classify_algo(algo, func)
 
-        if is_asym:
-            risk = "PQC Vulnerability: Encryption/Signature broken by Quantum Computer"
-            ra_risk = "Exposure to Shor's Algorithm (Quantum Integer Factorization)"
-            punca = f"Usage of Asymmetric algorithm ({algo}) which is not quantum-resistant"
-            impak, like, level, mitigation = 5, 5, "Sangat Tinggi", "Migrate to NIST PQC Standards (ML-KEM/ML-DSA)"
-        elif is_hash or is_sym:
-            risk = "PQC Vulnerability: Brute-force resistance reduced by 50%"
-            ra_risk = "Exposure to Grover's Algorithm (Quantum Search)"
-            kind = "Hash" if is_hash else "Symmetric"
-            punca = f"Usage of {kind} algorithm ({algo}) which is not quantum-resistant"
-            impak, like = 3, 3
-            level = "Rendah" if is_hash else "Sederhana"
-            mitigation = "Double Key Length / Digest Size (e.g., AES-128 -> AES-256)"
-        else:
-            risk = "PQC Readiness: Crypto usage requires review"
-            ra_risk = "PQC exposure unclear"
-            punca = f"Cryptographic usage ({algo}) requires classification"
-            impak, like, level, mitigation = 3, 2, "Rendah", "Perform crypto inventory + classify per PQC migration guidance"
+        risiko_rr, risiko_ra, punca, tahap, impak, like, kawalan = \
+            _risk_for_algo(kind, algo, func, purpose, file_base, line)
 
-        rr.append({
-            "#": i,
-            "Nama Sistem/ Perkakasan/Perisian": sys_app,
-            "Jenis Aset": "Application Code",
-            "Algoritma Kriptografi": algo,
-            "Kegunaan Algoritma Kriptografi": row.get("Purpose / Usage","") or row.get("Cryptographic Function",""),
-            "Tahap Kritikal": "Kritikal",
-            "Risiko": risk,
-            "Pemilik Risiko": "IT Security Team"
+        mitigation = _mitigation_plan(kind, algo, semgrep_mit)
+        score      = impak * like
+
+        rr_rows.append({
+            "#":                                        i,
+            "Nama Sistem/ Perkakasan/Perisian":         app,
+            "Jenis Aset\nAplikasi/Perkakasan/Perisian": "Application Code",
+            "Algoritma Kriptografi":                    algo,
+            "Kegunaan Algoritma Kriptografi":           purpose or func,
+            "Tahap Kritikal":                           tahap,
+            "Risiko":                                   risiko_rr,
+            "Pemilik Risiko":                           "IT Security Team / Application Owner",
         })
-        ra.append({
-            "#": i,
-            "Nama Sistem/ Perkakasan/Perisian": sys_app,
-            "Algoritma Kriptografi": algo,
-            "Risiko": ra_risk,
-            "Punca Risiko": punca,
-            "Impak": impak,
-            "Kemungkinan (Likelihood)": like,
-            "Skor Risiko": impak * like,
-            "Risk Level": level,
-            "Kawalan Sedia Ada": "Standard IT Security Controls",
-            "Mitigation Plan": mitigation
+        ra_rows.append({
+            "#":                                   i,
+            "Nama Sistem/ Perkakasan/Perisian":    app,
+            "Algoritma Kriptografi":               algo,
+            "Risiko":                              risiko_ra,
+            "Punca Risiko":                        punca,
+            "Impak":                               impak,
+            "Kemungkinan\n(Likelihood)":           like,
+            "Skor Risiko":                         score,
+            "Risk Level":                          score_to_risk_level(score),
+            "Kawalan Sedia Ada":                   kawalan,
+            "Mitigation Plan":                     mitigation,
         })
-    return rr, ra
 
-def write_sheet(ws, headers, rows):
+    return rr_rows, ra_rows
+
+
+# ---------------------------------------------------------------------------
+# Sheet headers (must match column order in template row 4)
+# ---------------------------------------------------------------------------
+
+SBOM_HEADERS = [
+    "#", "System / Application", "Purpose / Usage", "URL", "Services Mode",
+    "Target Customer", "Software Component", "Third-party Modules",
+    "External APIs or Services", "Critical Level", "Data Category",
+    "Is the application/system currently in use?", "Application/System Developer",
+    "Vendor's Name", "Does the agency have expertise?",
+    "Does the agency have a special budget allocation?", "Link to CBOM",
+]
+
+CBOM_HEADERS = [
+    "# (CBOM)", "System / Application", "File Path", "Line",
+    "Cryptographic Function", "Algorithm Used", "Library / Module",
+    "Key Length", "Purpose / Usage", "PQC Risk",
+    "Crypto-Agility Support", "Finding / Vulnerability",
+]
+
+RR_HEADERS = [
+    "#", "Nama Sistem/ Perkakasan/Perisian",
+    "Jenis Aset\nAplikasi/Perkakasan/Perisian",
+    "Algoritma Kriptografi", "Kegunaan Algoritma Kriptografi",
+    "Tahap Kritikal", "Risiko", "Pemilik Risiko",
+]
+
+RA_HEADERS = [
+    "#", "Nama Sistem/ Perkakasan/Perisian", "Algoritma Kriptografi",
+    "Risiko", "Punca Risiko", "Impak", "Kemungkinan\n(Likelihood)",
+    "Skor Risiko", "Risk Level", "Kawalan Sedia Ada", "Mitigation Plan",
+]
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def _write_scan_sheet(wb, sheet_name, title, description, headers, rows):
+    """Create a new supplementary scan-result sheet with preamble + data."""
+    ws = wb.create_sheet(sheet_name)
+    # Row 1: title
+    ws.append([title])
+    ws.cell(1, 1).font = Font(bold=True, size=12)
+    # Row 2: description
+    ws.append([description])
+    ws.cell(2, 1).alignment = Alignment(wrap_text=True)
+    # Row 3: blank
+    ws.append([])
+    # Row 4: headers
     ws.append(headers)
+    style_header_row(ws, row=4)
+    # Data rows
     for r in rows:
         ws.append([r.get(h, "") for h in headers])
-    style_header(ws)
-    wrap_all(ws, 2)
+    wrap_data_rows(ws)
     autosize(ws)
+    return ws
 
-def main(sbom_path, grype_path, cbom_path, mini_path, out_path):
-    sbom = load_json(sbom_path)
+
+# ---------------------------------------------------------------------------
+# TLS findings → rows
+# ---------------------------------------------------------------------------
+
+def parse_tls_rows(tls_data: dict) -> list:
+    rows = []
+    for chk in tls_data.get("tls_checks", []):
+        host      = chk.get("hostname", "")
+        port      = chk.get("port", "")
+        tls_ver   = chk.get("tls_version") or chk.get("error", "ERROR")
+        cipher_d  = chk.get("cipher_suite") or {}
+        cert_d    = chk.get("certificate") or {}
+        pqc_ready = "Yes" if chk.get("pqc_indicators") else "No"
+        pqc_ind   = ", ".join(chk.get("pqc_indicators", []))
+        error     = chk.get("error", "")
+
+        if error:
+            rows.append({
+                "Host": host, "Port": port, "TLS Version": "ERROR",
+                "Cipher Suite": "", "Key Bits": "", "PQC Ready": "No",
+                "PQC Indicators": "", "Cert Common Name": "", "Cert Issuer": "",
+                "Cert Expiry": "", "Days Until Expiry": "",
+                "Weak Findings": error, "Recommendations": "",
+            })
+            continue
+
+        weak = "; ".join(
+            f"{w.get('type')} [{w.get('severity')}]: {w.get('detail','')}"
+            for w in chk.get("weak_findings", [])
+        )
+        recs = "\n".join(chk.get("recommendations", []))
+
+        rows.append({
+            "Host":              host,
+            "Port":              port,
+            "TLS Version":       tls_ver,
+            "Cipher Suite":      cipher_d.get("name", ""),
+            "Key Bits":          cipher_d.get("key_bits", ""),
+            "PQC Ready":         pqc_ready,
+            "PQC Indicators":    pqc_ind,
+            "Cert Common Name":  cert_d.get("common_name", ""),
+            "Cert Issuer":       cert_d.get("issuer_cn", ""),
+            "Cert Expiry":       cert_d.get("not_after", ""),
+            "Days Until Expiry": cert_d.get("days_until_expiry", ""),
+            "Weak Findings":     weak,
+            "Recommendations":   recs,
+        })
+    return rows
+
+
+TLS_HEADERS = [
+    "Host", "Port", "TLS Version", "Cipher Suite", "Key Bits",
+    "PQC Ready", "PQC Indicators", "Cert Common Name", "Cert Issuer",
+    "Cert Expiry", "Days Until Expiry", "Weak Findings", "Recommendations",
+]
+
+
+# ---------------------------------------------------------------------------
+# SSH findings → rows
+# ---------------------------------------------------------------------------
+
+def parse_ssh_rows(ssh_data: dict) -> list:
+    rows = []
+    for chk in ssh_data.get("ssh_checks", []):
+        host   = chk.get("hostname", "")
+        port   = chk.get("port", "")
+        banner = chk.get("banner", "")
+        error  = chk.get("error", "")
+
+        if error:
+            rows.append({
+                "Host": host, "Port": port, "Banner": "", "PQC Ready": "No",
+                "PQC Indicators": "", "Category": "ERROR", "Algorithm": "",
+                "Severity": "", "Detail": error, "Recommendation": "",
+            })
+            continue
+
+        pqc_ready = "Yes" if chk.get("pqc_ready") else "No"
+        pqc_ind   = ", ".join(chk.get("pqc_indicators", []))
+
+        if not chk.get("weak_findings"):
+            rows.append({
+                "Host": host, "Port": port, "Banner": banner,
+                "PQC Ready": pqc_ready, "PQC Indicators": pqc_ind,
+                "Category": "", "Algorithm": "", "Severity": "Info",
+                "Detail": "No weak algorithms detected",
+                "Recommendation": "\n".join(chk.get("recommendations", [])),
+            })
+        else:
+            for wf in chk.get("weak_findings", []):
+                rows.append({
+                    "Host":           host,
+                    "Port":           port,
+                    "Banner":         banner,
+                    "PQC Ready":      pqc_ready,
+                    "PQC Indicators": pqc_ind,
+                    "Category":       wf.get("category", ""),
+                    "Algorithm":      wf.get("algorithm", ""),
+                    "Severity":       wf.get("severity", ""),
+                    "Detail":         wf.get("detail", ""),
+                    "Recommendation": wf.get("recommendation", ""),
+                })
+    return rows
+
+
+SSH_HEADERS = [
+    "Host", "Port", "Banner", "PQC Ready", "PQC Indicators",
+    "Category", "Algorithm", "Severity", "Detail", "Recommendation",
+]
+
+
+# ---------------------------------------------------------------------------
+# Cert file findings → rows
+# ---------------------------------------------------------------------------
+
+def parse_cert_rows(cert_data: dict) -> list:
+    rows = []
+    for entry in cert_data.get("cert_file_scan", []):
+        file_path = entry.get("file", "")
+        algo      = entry.get("algorithm", "")
+        key_bits  = entry.get("key_bits", "")
+        qrisk     = entry.get("quantum_risk", "")
+        cert_type = entry.get("type", "")
+        subject   = entry.get("subject_cn", "")
+        issuer    = entry.get("issuer_cn", "")
+        expiry    = entry.get("not_after", "")
+        days      = entry.get("days_until_expiry", "")
+        sig_algo  = entry.get("signature_algorithm", "")
+
+        for f in entry.get("findings", []):
+            rows.append({
+                "File":              file_path,
+                "Type":              cert_type,
+                "Algorithm":         algo,
+                "Key Bits":          key_bits,
+                "Quantum Risk":      qrisk,
+                "Subject CN":        subject,
+                "Issuer CN":         issuer,
+                "Signature Algo":    sig_algo,
+                "Expiry Date":       expiry,
+                "Days Until Expiry": days,
+                "Finding Type":      f.get("type", ""),
+                "Severity":          f.get("severity", ""),
+                "Detail":            f.get("detail", ""),
+                "Recommendation":    f.get("recommendation", ""),
+            })
+    return rows
+
+
+CERT_HEADERS = [
+    "File", "Type", "Algorithm", "Key Bits", "Quantum Risk",
+    "Subject CN", "Issuer CN", "Signature Algo", "Expiry Date", "Days Until Expiry",
+    "Finding Type", "Severity", "Detail", "Recommendation",
+]
+
+
+# ---------------------------------------------------------------------------
+# Config file findings → rows
+# ---------------------------------------------------------------------------
+
+def parse_config_rows(config_data: dict) -> list:
+    rows = []
+    for entry in config_data.get("config_scan", []):
+        file_path = entry.get("file", "")
+        for f in entry.get("findings", []):
+            rows.append({
+                "File":           file_path,
+                "Line":           f.get("line", ""),
+                "Finding Type":   f.get("finding_type", ""),
+                "Severity":       f.get("severity", ""),
+                "Matched Text":   f.get("matched_text", ""),
+                "Context":        f.get("context_line", ""),
+                "Detail":         f.get("detail", ""),
+                "Recommendation": f.get("recommendation", ""),
+            })
+    return rows
+
+
+CONFIG_HEADERS = [
+    "File", "Line", "Finding Type", "Severity",
+    "Matched Text", "Context", "Detail", "Recommendation",
+]
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main(
+    sbom_path, grype_path, cbom_path, mini_path, out_path,
+    tls_path=None, ssh_path=None, cert_path=None, config_path=None,
+):
+    # ---- load scan data ----
+    sbom  = load_json(sbom_path)
     grype = load_json(grype_path)
-    cbom = load_json(cbom_path)
+    cbom  = load_json(cbom_path)
+    # mini_pqc reserved for future linkage
     _mini = load_json(mini_path)
 
     grype_worst = parse_grype_worst_severity_by_pkg(grype)
-    sbom_rows = parse_syft_sbom_rows(sbom, grype_worst)
-    cbom_rows = parse_cbom_rows(cbom)
-    rr_rows, ra_rows = risk_templates_from_cbom(cbom_rows)
+    sbom_rows   = parse_sbom_rows(sbom, grype_worst)
+    cbom_rows   = parse_cbom_rows(cbom)
+    rr_rows, ra_rows = risk_rows_from_cbom(cbom_rows)
 
-    wb = Workbook()
-    wb.remove(wb.active)
+    # Optional scan JSONs for inventory
+    tls_data    = load_json(tls_path)    if tls_path    else None
+    ssh_data    = load_json(ssh_path)    if ssh_path    else None
+    cert_data   = load_json(cert_path)   if cert_path   else None
+    config_data = load_json(config_path) if config_path else None
 
-    ws1 = wb.create_sheet("1_SBOM")
-    sbom_headers = [
-        "#","System / Application","Purpose / Usage","URL","Services Mode","Target Customer",
-        "Software Component","Third-party Modules","External APIs or Services","Critical Level",
-        "Data Category","Is the application/system currently in use?","Application/System Developer",
-        "Vendor's Name","Does the agency have expertise?","Does the agency have a special budget allocation?",
-        "Link to CBOM"
-    ]
-    write_sheet(ws1, sbom_headers, sbom_rows)
+    inventory_rows = parse_inventory_rows(
+        sbom, grype_worst, cbom_rows,
+        mini_pqc=_mini, tls_data=tls_data, ssh_data=ssh_data,
+        cert_data=cert_data, config_data=config_data,
+    )
 
-    ws2 = wb.create_sheet("2_CBOM")
-    cbom_headers = ["# (CBOM)","System / Application","Cryptographic Function","Algorithm Used","Algorithm Category",
-                    "Library / Module","File / Location","Key Length","Purpose / Usage","Crypto-Agility Support"]
-    write_sheet(ws2, cbom_headers, cbom_rows)
+    # ---- start from template (preserves static sheets + all styling) ----
+    if not TEMPLATE_PATH.exists():
+        raise FileNotFoundError(
+            f"Reference template not found: {TEMPLATE_PATH}\n"
+            "Ensure 'bin/pqc_migration/BUKUKERJA_BENGKEL MIGRASI PQC 2025.xlsx' is present."
+        )
+    shutil.copy2(TEMPLATE_PATH, out_path)
+    wb = load_workbook(out_path)
 
-    ws3 = wb.create_sheet("3_RiskRegister")
-    rr_headers = ["#","Nama Sistem/ Perkakasan/Perisian","Jenis Aset","Algoritma Kriptografi","Kegunaan Algoritma Kriptografi",
-                  "Tahap Kritikal","Risiko","Pemilik Risiko"]
-    write_sheet(ws3, rr_headers, rr_rows)
+    # ---- 0_Inventory (auto-populated from all scan sources) ----
+    populate_sheet(wb["0_Inventory"], INVENTORY_HEADERS, inventory_rows)
 
-    ws4 = wb.create_sheet("4_RiskAssessment")
-    ra_headers = ["#","Nama Sistem/ Perkakasan/Perisian","Algoritma Kriptografi","Risiko","Punca Risiko","Impak",
-                  "Kemungkinan (Likelihood)","Skor Risiko","Risk Level","Kawalan Sedia Ada","Mitigation Plan"]
-    write_sheet(ws4, ra_headers, ra_rows)
+    # ---- 1_SBOM ----
+    populate_sheet(wb["1_SBOM"], SBOM_HEADERS, sbom_rows)
+
+    # ---- 2_CBOM (extended: adds File Path, Line, PQC Risk, Finding columns) ----
+    populate_sheet(wb["2_CBOM"], CBOM_HEADERS, cbom_rows)
+
+    # ---- 3_RiskRegister ----
+    populate_sheet(wb["3_RiskRegister"], RR_HEADERS, rr_rows)
+
+    # ---- 4_RiskAssessment ----
+    populate_sheet(wb["4_RiskAssessment"], RA_HEADERS, ra_rows)
+
+    # ---- 5_TLS_Scan ----
+    if tls_data:
+        try:
+            _write_scan_sheet(
+                wb, "5_TLS_Scan",
+                "Table 5 – TLS/SSL Server Cryptographic Analysis",
+                "Live TLS handshake analysis: protocol version, cipher suite, certificate details, and PQC readiness.",
+                TLS_HEADERS, parse_tls_rows(tls_data),
+            )
+        except Exception:
+            pass
+
+    # ---- 6_SSH_Scan ----
+    if ssh_data:
+        try:
+            _write_scan_sheet(
+                wb, "6_SSH_Scan",
+                "Table 6 – SSH Server Algorithm Analysis",
+                "SSH KEX, host-key, cipher, and MAC algorithm analysis against PQC-readiness standards.",
+                SSH_HEADERS, parse_ssh_rows(ssh_data),
+            )
+        except Exception:
+            pass
+
+    # ---- 7_CertFiles ----
+    if cert_data:
+        try:
+            _write_scan_sheet(
+                wb, "7_CertFiles",
+                "Table 7 – Certificate & Key File Scan",
+                "X.509 certificates and private key files found in the target path, checked for weak algorithms, key sizes, and expiry.",
+                CERT_HEADERS, parse_cert_rows(cert_data),
+            )
+        except Exception:
+            pass
+
+    # ---- 8_ConfigFiles ----
+    if config_data:
+        try:
+            _write_scan_sheet(
+                wb, "8_ConfigFiles",
+                "Table 8 – Config File Weak-Crypto Scan",
+                "Server and application configuration files scanned for weak protocols, cipher suites, and deprecated hash algorithms.",
+                CONFIG_HEADERS, parse_config_rows(config_data),
+            )
+        except Exception:
+            pass
+
+    # ---- 0_Inventory, 5_RiskMatrix, 6_ProtocolCryptoMap, 00_ReadMe ----
+    # Kept as-is from the template (static reference content).
 
     wb.save(out_path)
+
 
 if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser()
-    ap.add_argument("--sbom", required=True)
-    ap.add_argument("--grype", required=True)
-    ap.add_argument("--cbom", required=True)
-    ap.add_argument("--mini", required=True)
-    ap.add_argument("--out", required=True)
+    ap.add_argument("--sbom",   required=True)
+    ap.add_argument("--grype",  required=True)
+    ap.add_argument("--cbom",   required=True)
+    ap.add_argument("--mini",   required=True)
+    ap.add_argument("--out",    required=True)
+    ap.add_argument("--tls",    default=None, help="TLS scan JSON (Stage 5)")
+    ap.add_argument("--ssh",    default=None, help="SSH scan JSON (Stage 6)")
+    ap.add_argument("--certs",  default=None, help="Cert file scan JSON (Stage 7)")
+    ap.add_argument("--config", default=None, help="Config file scan JSON (Stage 8)")
     args = ap.parse_args()
-    main(args.sbom, args.grype, args.cbom, args.mini, args.out)
+    main(args.sbom, args.grype, args.cbom, args.mini, args.out,
+         tls_path=args.tls, ssh_path=args.ssh,
+         cert_path=args.certs, config_path=args.config)
