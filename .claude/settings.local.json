@@ -12,7 +12,9 @@
       "Bash(python3 -m py_compile scripts/scan_0_portdiscovery.py)",
       "Bash(python3 -m py_compile scripts/scan_8_starttls.py)",
       "Bash(python3 -m py_compile scripts/scan_9_ike.py)",
-      "Bash(python3 -m py_compile scripts/scan_10_rdp.py)"
+      "Bash(python3 -m py_compile scripts/scan_10_rdp.py)",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\(''''pqc_auto_scan.py'''', encoding=''''utf-8'''', errors=''''replace''''\\).read\\(\\)\\); print\\(''''OK''''\\)\")",
+      "Bash(done)"
     ]
   }
 }

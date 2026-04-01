@@ -96,7 +96,7 @@ def _sig_algo_info(sig_hash_name: str) -> dict:
     h = (sig_hash_name or "").lower()
     if "md5"  in h or "md2" in h:
         return {"severity": "Critical", "detail": "MD5/MD2 signature hash — cryptographically broken"}
-    if "sha1" in h and "sha1" not in ["sha1-hmac"]:
+    if "sha1" in h and "hmac" not in h:
         return {"severity": "High", "detail": "SHA-1 signature hash — deprecated (NIST 2030)"}
     if "sha256" in h or "sha384" in h or "sha512" in h or "sha3" in h:
         return {"severity": "Info", "detail": f"Signature hash {sig_hash_name} — classically acceptable"}
@@ -172,6 +172,19 @@ def _parse_cert_pem(data: bytes) -> Optional[dict]:
             "detail": f"Certificate expires in {days_left} days",
             "recommendation": "Schedule certificate renewal",
         })
+
+    # Self-signed certificate (subject == issuer)
+    try:
+        is_self_signed = cert.subject == cert.issuer
+        if is_self_signed:
+            findings.append({
+                "type":     "Self-Signed Certificate",
+                "severity": "High",
+                "detail":   f"Certificate is self-signed (issuer = subject = '{issuer_cn}') — not trusted by public CAs",
+                "recommendation": "Replace with a certificate issued by a trusted CA for production use",
+            })
+    except Exception:
+        pass
 
     # Quantum-weak key
     if key_info.get("quantum_risk") in ("Sangat Tinggi", "Tinggi"):

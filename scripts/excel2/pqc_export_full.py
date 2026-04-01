@@ -189,14 +189,21 @@ def _mini_has_critical(recs: list, module_id: int) -> bool:
 
 
 def parse_inventory_rows(
-    sbom:        dict,
-    grype_worst: dict,
-    cbom_rows:   list,
-    mini_pqc:    dict | None = None,
-    tls_data:    dict | None = None,
-    ssh_data:    dict | None = None,
-    cert_data:   dict | None = None,
-    config_data: dict | None = None,
+    sbom:           dict,
+    grype_worst:    dict,
+    cbom_rows:      list,
+    mini_pqc:       dict | None = None,
+    tls_data:       dict | None = None,
+    ssh_data:       dict | None = None,
+    cert_data:      dict | None = None,
+    config_data:    dict | None = None,
+    starttls_data:  dict | None = None,
+    ike_data:       dict | None = None,
+    rdp_data:       dict | None = None,
+    smb_data:       dict | None = None,
+    db_data:        dict | None = None,
+    snmp_data:      dict | None = None,
+    kerberos_data:  dict | None = None,
 ) -> list:
     """Build 0_Inventory rows from all available scan sources."""
     rows = []
@@ -392,7 +399,8 @@ def parse_inventory_rows(
     # ------------------------------------------------------------------ #
     if tls_data:
         for chk in tls_data.get("tls_checks", []):
-            err = chk.get("error", "")
+            if chk.get("error"):
+                continue
             host = chk.get("hostname", "")
             port = chk.get("port", 443)
             cipher_d = chk.get("cipher_suite") or {}
@@ -400,71 +408,48 @@ def parse_inventory_rows(
             cipher   = cipher_d.get("name", "")
             pqc_ind  = chk.get("pqc_indicators", [])
             weak     = chk.get("weak_findings", [])
-            if err:
-                add(
-                    asset_type  = "Network Service (TLS)",
-                    name        = f"{host}:{port}",
-                    location    = host,
-                    crypto_present = "Unknown",
-                    algos       = "(connection error)",
-                    sbom_cbom   = "No",
-                    readiness   = "Unknown",
-                    notes       = f"TLS scan error: {err}",
-                )
-            else:
-                algos_str = f"{tls_ver}, {cipher}" if cipher else tls_ver
-                add(
-                    asset_type  = "Network Service (TLS)",
-                    name        = f"{host}:{port}",
-                    location    = host,
-                    crypto_present = "Yes",
-                    algos       = algos_str,
-                    sbom_cbom   = "Yes (TLS scan)",
-                    readiness   = "High" if pqc_ind else ("Low" if weak else "Medium"),
-                    notes       = (
-                        f"PQC indicator: {', '.join(pqc_ind)}." if pqc_ind else
-                        f"{len(weak)} weak finding(s). Migrate to ML-KEM hybrid KEM in TLS 1.3."
-                    ),
-                )
+            algos_str = f"{tls_ver}, {cipher}" if cipher else tls_ver
+            add(
+                asset_type  = "Network Service (TLS)",
+                name        = f"{host}:{port}",
+                location    = host,
+                crypto_present = "Yes",
+                algos       = algos_str,
+                sbom_cbom   = "Yes (TLS scan)",
+                readiness   = "High" if pqc_ind else ("Low" if weak else "Medium"),
+                notes       = (
+                    f"PQC indicator: {', '.join(pqc_ind)}." if pqc_ind else
+                    f"{len(weak)} weak finding(s). Migrate to ML-KEM hybrid KEM in TLS 1.3."
+                ),
+            )
 
     # ------------------------------------------------------------------ #
     # 5. SSH network services                                              #
     # ------------------------------------------------------------------ #
     if ssh_data:
         for chk in ssh_data.get("ssh_checks", []):
-            err  = chk.get("error", "")
+            if chk.get("error"):
+                continue
             host = chk.get("hostname", "")
             port = chk.get("port", 22)
             banner = chk.get("banner", "")
             kex  = (chk.get("kex_init") or {}).get("kex_algorithms", [])
             pqc_ind = chk.get("pqc_indicators", [])
             weak    = chk.get("weak_findings", [])
-            if err:
-                add(
-                    asset_type  = "Network Service (SSH)",
-                    name        = f"{host}:{port}",
-                    location    = host,
-                    crypto_present = "Unknown",
-                    algos       = "(connection error)",
-                    sbom_cbom   = "No",
-                    readiness   = "Unknown",
-                    notes       = f"SSH scan error: {err}",
-                )
-            else:
-                kex_str = ", ".join(kex[:4]) + ("..." if len(kex) > 4 else "")
-                add(
-                    asset_type  = "Network Service (SSH)",
-                    name        = f"{host}:{port} ({banner})" if banner else f"{host}:{port}",
-                    location    = host,
-                    crypto_present = "Yes",
-                    algos       = kex_str,
-                    sbom_cbom   = "Yes (SSH scan)",
-                    readiness   = "High" if pqc_ind else ("Low" if weak else "Medium"),
-                    notes       = (
-                        f"PQC-hybrid KEX: {', '.join(pqc_ind)}." if pqc_ind else
-                        f"{len(weak)} weak algorithm(s). Add sntrup761x25519-sha512@openssh.com to KexAlgorithms."
-                    ),
-                )
+            kex_str = ", ".join(kex[:4]) + ("..." if len(kex) > 4 else "")
+            add(
+                asset_type  = "Network Service (SSH)",
+                name        = f"{host}:{port} ({banner})" if banner else f"{host}:{port}",
+                location    = host,
+                crypto_present = "Yes",
+                algos       = kex_str,
+                sbom_cbom   = "Yes (SSH scan)",
+                readiness   = "High" if pqc_ind else ("Low" if weak else "Medium"),
+                notes       = (
+                    f"PQC-hybrid KEX: {', '.join(pqc_ind)}." if pqc_ind else
+                    f"{len(weak)} weak algorithm(s). Add sntrup761x25519-sha512@openssh.com to KexAlgorithms."
+                ),
+            )
 
     # ------------------------------------------------------------------ #
     # 6. Certificate / PKI files                                           #
@@ -519,6 +504,219 @@ def parse_inventory_rows(
                     f"{total_findings} finding(s): "
                     f"{critical_n} Critical, {high_n} High. "
                     "See 2_CBOM sheet for file-level details."
+                ),
+            )
+
+    # ------------------------------------------------------------------ #
+    # 8. STARTTLS services                                                 #
+    # ------------------------------------------------------------------ #
+    if starttls_data:
+        for chk in starttls_data.get("starttls_checks", []):
+            if chk.get("error"):
+                continue
+            host    = chk.get("hostname", "")
+            port    = chk.get("port", "")
+            service = chk.get("service", "STARTTLS")
+            cipher_d = chk.get("cipher_suite") or {}
+            tls_ver  = chk.get("tls_version", "?")
+            cipher   = cipher_d.get("name", "")
+            pqc_ind  = chk.get("pqc_indicators", [])
+            weak     = chk.get("weak_findings", [])
+            supported = chk.get("starttls_supported", False)
+            algos_str = f"{tls_ver}, {cipher}" if cipher else (tls_ver or "No TLS")
+            add(
+                asset_type  = f"Network Service ({service})",
+                name        = f"{host}:{port} ({service})",
+                location    = host,
+                crypto_present = "Yes" if supported else "No",
+                algos       = algos_str,
+                sbom_cbom   = "Yes (STARTTLS scan)",
+                readiness   = "High" if pqc_ind else ("Low" if weak else ("Very Low" if not supported else "Medium")),
+                notes       = (
+                    f"PQC indicator detected." if pqc_ind else
+                    f"STARTTLS not supported — plaintext risk." if not supported else
+                    f"{len(weak)} weak TLS finding(s)."
+                ),
+            )
+
+    # ------------------------------------------------------------------ #
+    # 9. IKE/IPsec VPN                                                    #
+    # ------------------------------------------------------------------ #
+    if ike_data:
+        for chk in ike_data.get("ike_checks", []):
+            if chk.get("error"):
+                continue
+            host    = chk.get("hostname", "")
+            port    = chk.get("port", "")
+            version = chk.get("ike_version", "IKE")
+            dh      = (chk.get("preferred_dh_group") or {}).get("name", "Unknown DH")
+            enc     = ", ".join(chk.get("encryption_algos", []))
+            pqc_rdy = chk.get("pqc_ready", False)
+            weak    = chk.get("weak_findings", [])
+            ikev1   = chk.get("ikev1_enabled", False)
+            add(
+                asset_type  = "Network Service (VPN/IPsec)",
+                name        = f"{host}:{port} ({version})",
+                location    = host,
+                crypto_present = "Yes",
+                algos       = f"{dh}; {enc}" if enc else dh,
+                sbom_cbom   = "Yes (IKE scan)",
+                readiness   = "High" if pqc_rdy else ("Very Low" if ikev1 else "Low"),
+                notes       = (
+                    "PQC-hybrid DH detected." if pqc_rdy else
+                    f"IKEv1 enabled (deprecated). {len(weak)} weak finding(s)." if ikev1 else
+                    f"{len(weak)} weak finding(s). Migrate to IKEv2 with PQC hybrid DH."
+                ),
+            )
+
+    # ------------------------------------------------------------------ #
+    # 10. RDP                                                              #
+    # ------------------------------------------------------------------ #
+    if rdp_data:
+        for chk in rdp_data.get("rdp_checks", []):
+            if chk.get("error"):
+                continue
+            host    = chk.get("hostname", "")
+            port    = chk.get("port", "")
+            proto   = chk.get("security_protocol", "Unknown")
+            cipher_d = chk.get("cipher_suite") or {}
+            tls_ver  = chk.get("tls_version", "")
+            cipher   = cipher_d.get("name", "")
+            weak    = chk.get("weak_findings", [])
+            classic = chk.get("classic_rdp_security", False)
+            algos_str = f"{tls_ver}, {cipher}" if cipher else (proto or "Classic RDP")
+            add(
+                asset_type  = "Network Service (RDP)",
+                name        = f"{host}:{port}",
+                location    = host,
+                crypto_present = "Yes",
+                algos       = algos_str,
+                sbom_cbom   = "Yes (RDP scan)",
+                readiness   = "Very Low" if classic else ("Low" if weak else "Medium"),
+                notes       = (
+                    "Classic RDP security (no NLA/TLS) — RC4 encryption, no server auth." if classic else
+                    f"{len(weak)} weak TLS cipher(s). Enable NLA and TLS 1.3."
+                ),
+            )
+
+    # ------------------------------------------------------------------ #
+    # 11. SMB                                                              #
+    # ------------------------------------------------------------------ #
+    if smb_data:
+        for chk in smb_data.get("smb_checks", []):
+            if chk.get("error"):
+                continue
+            host    = chk.get("hostname", "")
+            port    = chk.get("port", "")
+            dialect = chk.get("dialect", "SMB")
+            enc_sup = chk.get("encryption_supported", False)
+            smb1    = chk.get("smb1_enabled", False)
+            ciphers = ", ".join(chk.get("cipher_ids", []))
+            weak    = chk.get("weak_findings", [])
+            add(
+                asset_type  = "Network Service (SMB)",
+                name        = f"{host}:{port} ({dialect})",
+                location    = host,
+                crypto_present = "Yes" if enc_sup else "Partial",
+                algos       = ciphers or ("None (SMBv1)" if smb1 else "NTLM/Kerberos"),
+                sbom_cbom   = "Yes (SMB scan)",
+                readiness   = "Very Low" if smb1 else ("Low" if not enc_sup else "Medium"),
+                notes       = (
+                    "SMBv1 enabled — EternalBlue/WannaCry risk; no message encryption." if smb1 else
+                    f"SMB encryption {'supported' if enc_sup else 'NOT supported'}. {len(weak)} weak finding(s)."
+                ),
+            )
+
+    # ------------------------------------------------------------------ #
+    # 12. Database services                                                #
+    # ------------------------------------------------------------------ #
+    if db_data:
+        for chk in db_data.get("db_checks", []):
+            if chk.get("error"):
+                continue
+            host    = chk.get("hostname", "")
+            port    = chk.get("port", "")
+            service = chk.get("service", "Database")
+            tls_sup = chk.get("tls_supported", False)
+            tls_ver = chk.get("tls_version", "")
+            cipher_d = chk.get("cipher_suite") or {}
+            cipher  = cipher_d.get("name", "")
+            weak    = chk.get("weak_findings", [])
+            algos_str = f"{tls_ver}, {cipher}" if cipher else ("No TLS" if not tls_sup else "TLS (cipher unknown)")
+            add(
+                asset_type  = f"Database Service ({service})",
+                name        = f"{host}:{port} ({service})",
+                location    = host,
+                crypto_present = "Yes" if tls_sup else "No",
+                algos       = algos_str,
+                sbom_cbom   = "Yes (DB scan)",
+                readiness   = "Very Low" if not tls_sup else ("Low" if weak else "Medium"),
+                notes       = (
+                    f"{service} does not support TLS — data in transit is unencrypted." if not tls_sup else
+                    f"{len(weak)} weak TLS finding(s). Enforce TLS 1.3 with strong ciphers."
+                ),
+            )
+
+    # ------------------------------------------------------------------ #
+    # 13. SNMP agents                                                      #
+    # ------------------------------------------------------------------ #
+    if snmp_data:
+        for chk in snmp_data.get("snmp_checks", []):
+            if chk.get("error"):
+                continue
+            host = chk.get("hostname", "")
+            port = chk.get("port", "")
+            v1   = chk.get("v1_enabled", False)
+            v2c  = chk.get("v2c_enabled", False)
+            v3   = chk.get("v3_enabled", False)
+            weak = chk.get("weak_findings", [])
+            versions = ", ".join(filter(None, [
+                "SNMPv1" if v1 else "",
+                "SNMPv2c" if v2c else "",
+                "SNMPv3" if v3 else "",
+            ]))
+            add(
+                asset_type  = "Network Service (SNMP)",
+                name        = f"{host}:{port}",
+                location    = host,
+                crypto_present = "Partial" if v3 else "No",
+                algos       = "Community String (no crypto)" if (v1 or v2c) else "USM (MD5/SHA)",
+                sbom_cbom   = "Yes (SNMP scan)",
+                readiness   = "Very Low" if (v1 or v2c) else "Low",
+                notes       = (
+                    f"Versions detected: {versions}. "
+                    + ("SNMPv1/v2c use cleartext community strings — no encryption. " if (v1 or v2c) else "")
+                    + ("Disable v1/v2c; enforce SNMPv3 with AES-256 priv." if (v1 or v2c) else
+                       "SNMPv3 only — verify auth/priv protocols.")
+                ),
+            )
+
+    # ------------------------------------------------------------------ #
+    # 14. Kerberos KDCs                                                    #
+    # ------------------------------------------------------------------ #
+    if kerberos_data:
+        for chk in kerberos_data.get("kerberos_checks", []):
+            if chk.get("error"):
+                continue
+            host   = chk.get("hostname", "")
+            port   = chk.get("port", "")
+            etypes = ", ".join(chk.get("etype_names", []))
+            rc4    = chk.get("rc4_enabled", False)
+            des    = chk.get("des_enabled", False)
+            weak   = chk.get("weak_findings", [])
+            add(
+                asset_type  = "Authentication Service (Kerberos)",
+                name        = f"{host}:{port} (KDC)",
+                location    = host,
+                crypto_present = "Yes",
+                algos       = etypes or "Unknown etypes",
+                sbom_cbom   = "Yes (Kerberos scan)",
+                readiness   = "Very Low" if (rc4 or des) else ("Low" if weak else "Medium"),
+                notes       = (
+                    f"Encryption types: {etypes}. "
+                    + ("RC4/DES enabled — plaintext-equivalent risk (Pass-the-Hash). " if (rc4 or des) else "")
+                    + ("Disable RC4-HMAC and DES; enforce AES256-CTS-HMAC-SHA384-192." if (rc4 or des) else
+                       "Verify AES256-CTS is the preferred etype.")
                 ),
             )
 
@@ -714,24 +912,54 @@ def parse_cbom_rows(cbom: dict) -> list:
 # Risk Register & Risk Assessment — algorithm-specific, uses Semgrep metadata
 # ---------------------------------------------------------------------------
 
-def _classify_algo(algo: str, func: str) -> str:
-    """Return one of: asym | hash_weak | hash_strong | sym_weak | sym_strong | rng | obfuscation | other"""
-    a, f = algo.lower(), func.lower()
-    if any(x in a for x in ["rsa", "ecdsa", "ecdh", "dsa", " dh", "ed25519", "x25519", "x448", "kyber", "dilithium", "falcon", "ml-kem", "ml-dsa"]):
+def _classify_single(a: str, f: str) -> str:
+    """Classify a single (already lowercased) algorithm token."""
+    if any(x in a for x in [
+        "rsa", "ecdsa", "ecdh", "dsa", " dh", "dh-", "dh group", "dh (", "modp-", "modp ",
+        "ecp-", "ecp ", "ed25519", "x25519", "x448", "curve25519", "curve448",
+        "kyber", "dilithium", "falcon", "ml-kem", "ml-dsa", "ikev1", "ikev2",
+    ]):
         return "asym"
-    if any(x in a for x in ["md5", "sha-1", "sha1"]):
+    if any(x in a for x in ["md5", "sha-1", "sha1", "hmac-md5", "hmac-sha1",
+                              "usm (md5", "usm (sha-1", "usm (sha1"]):
         return "hash_weak"
-    if any(x in a for x in ["sha-256", "sha256", "sha-384", "sha-512", "sha3", "blake"]):
+    if any(x in a for x in ["sha-256", "sha256", "sha-384", "sha-512", "sha3",
+                              "blake", "hmac-sha256", "hmac-sha384", "hmac-sha512"]):
         return "hash_strong"
-    if any(x in a for x in ["des", "3des", "rc4", "rc2", "blowfish", "seed", "idea", "ecb"]):
+    if any(x in a for x in ["des", "3des", "rc4", "rc2", "blowfish", "seed",
+                              "idea", "ecb", "arcfour", "rc4-hmac", "des-cbc",
+                              "des-md5", "des-sha1"]):
         return "sym_weak"
-    if any(x in a for x in ["aes", "chacha20", "chacha"]):
+    if any(x in a for x in ["aes", "chacha20", "chacha", "aes128-cts", "aes256-cts"]):
         return "sym_strong"
+    if any(x in a for x in ["community string", "snmpv1", "snmpv2c"]):
+        return "obfuscation"
     if any(x in a for x in ["rand", "mt_rand", "uniqid", "math.random"]) or "rng" in f or "random" in f:
         return "rng"
     if any(x in a for x in ["base64", "rot13", "hex"]):
         return "obfuscation"
     return "other"
+
+
+# Severity ordering: lower index = worse/higher priority classification
+_CLASS_ORDER = ["asym", "sym_weak", "hash_weak", "obfuscation", "rng",
+                "hash_strong", "sym_strong", "other"]
+
+
+def _classify_algo(algo: str, func: str) -> str:
+    """Return one of: asym | hash_weak | hash_strong | sym_weak | sym_strong | rng | obfuscation | other
+
+    Handles comma-separated algorithm lists (e.g. Kerberos mixed-etype strings like
+    "ArcFour-HMAC, AES256-CTS-HMAC-SHA1-96") by classifying each token and returning
+    the worst (highest-severity) classification.
+    """
+    f = func.lower()
+    tokens = [t.strip().lower() for t in algo.split(",") if t.strip()]
+    if not tokens:
+        return "other"
+    results = [_classify_single(t, f) for t in tokens]
+    # Return the result with the lowest index in _CLASS_ORDER (= worst severity)
+    return min(results, key=lambda c: _CLASS_ORDER.index(c) if c in _CLASS_ORDER else len(_CLASS_ORDER))
 
 
 def _risk_for_algo(kind: str, algo: str, func: str, purpose: str, file_base: str, line) -> tuple:
@@ -1074,32 +1302,17 @@ def tls_to_cbom_rows(tls_data: dict, start_idx: int = 1) -> list:
     idx = start_idx
     sev_rank = {"critical": 4, "high": 3, "medium": 2, "low": 1}
     for chk in tls_data.get("tls_checks", []):
+        if chk.get("error"):
+            continue
         host   = chk.get("hostname", "")
         port   = chk.get("port", "")
-        error  = chk.get("error", "")
         system = f"{host}:{port}" if port else host
-        if error:
-            rows.append({
-                "# (CBOM)":               f"CBOM #{idx}",
-                "System / Application":   system,
-                "File Path":              "",
-                "Line":                   "",
-                "Cryptographic Function": "TLS Connection",
-                "Algorithm Used":         "",
-                "Library / Module":       "TLS/SSL",
-                "Key Length":             "",
-                "Purpose / Usage":        "TLS/SSL encrypted connection",
-                "PQC Risk":               "High",
-                "Crypto-Agility Support": "No",
-                "Finding / Vulnerability": error,
-                "_path": system, "_line": "", "_mitigation": "Verify TLS service is reachable and review its configuration.",
-            })
-            idx += 1
-            continue
         cipher_d   = chk.get("cipher_suite") or {}
         tls_ver    = chk.get("tls_version", "")
         pqc_ind    = chk.get("pqc_indicators", [])
         weak       = chk.get("weak_findings", [])
+        if not weak:
+            continue
         recs       = "\n".join(chk.get("recommendations", []))
         cipher_name = cipher_d.get("name", "")
         algo = _extract_algo_from_cipher(cipher_name) or cipher_name
@@ -1131,68 +1344,34 @@ def ssh_to_cbom_rows(ssh_data: dict, start_idx: int = 1) -> list:
     rows = []
     idx = start_idx
     for chk in ssh_data.get("ssh_checks", []):
+        if chk.get("error"):
+            continue
         host   = chk.get("hostname", "")
         port   = chk.get("port", "")
-        error  = chk.get("error", "")
         system = f"{host}:{port}" if port else host
         banner = chk.get("banner", "")
-        if error:
-            rows.append({
-                "# (CBOM)":               f"CBOM #{idx}",
-                "System / Application":   system,
-                "File Path":              "",
-                "Line":                   "",
-                "Cryptographic Function": "SSH Connection",
-                "Algorithm Used":         "",
-                "Library / Module":       "SSH",
-                "Key Length":             "",
-                "Purpose / Usage":        "SSH remote access",
-                "PQC Risk":               "High",
-                "Crypto-Agility Support": "No",
-                "Finding / Vulnerability": error,
-                "_path": system, "_line": "", "_mitigation": "Verify SSH service is reachable.",
-            })
-            idx += 1
-            continue
-        pqc_ind = chk.get("pqc_indicators", [])
         weak    = chk.get("weak_findings", [])
+        if not weak:
+            continue
         recs    = "\n".join(chk.get("recommendations", []))
         lib_ver = banner[:60] if banner else "SSH"
-        if not weak:
+        for wf in weak:
             rows.append({
                 "# (CBOM)":               f"CBOM #{idx}",
                 "System / Application":   system,
                 "File Path":              "",
                 "Line":                   "",
-                "Cryptographic Function": "SSH Key Exchange",
-                "Algorithm Used":         "SSH (no weak algorithms)",
+                "Cryptographic Function": wf.get("category", "SSH Algorithm"),
+                "Algorithm Used":         wf.get("algorithm", ""),
                 "Library / Module":       lib_ver,
                 "Key Length":             "",
                 "Purpose / Usage":        "SSH remote access",
-                "PQC Risk":               "Low" if pqc_ind else "Medium",
-                "Crypto-Agility Support": "Yes" if pqc_ind else "Partial",
-                "Finding / Vulnerability": "No weak algorithms detected",
-                "_path": system, "_line": "", "_mitigation": recs,
+                "PQC Risk":               _pqc_risk_from_sev(wf.get("severity", "")),
+                "Crypto-Agility Support": "No",
+                "Finding / Vulnerability": wf.get("detail", ""),
+                "_path": system, "_line": "", "_mitigation": wf.get("recommendation", ""),
             })
             idx += 1
-        else:
-            for wf in weak:
-                rows.append({
-                    "# (CBOM)":               f"CBOM #{idx}",
-                    "System / Application":   system,
-                    "File Path":              "",
-                    "Line":                   "",
-                    "Cryptographic Function": wf.get("category", "SSH Algorithm"),
-                    "Algorithm Used":         wf.get("algorithm", ""),
-                    "Library / Module":       lib_ver,
-                    "Key Length":             "",
-                    "Purpose / Usage":        "SSH remote access",
-                    "PQC Risk":               _pqc_risk_from_sev(wf.get("severity", "")),
-                    "Crypto-Agility Support": "No",
-                    "Finding / Vulnerability": wf.get("detail", ""),
-                    "_path": system, "_line": "", "_mitigation": wf.get("recommendation", ""),
-                })
-                idx += 1
     return rows
 
 
@@ -1261,50 +1440,353 @@ def renumber_cbom_rows(rows: list) -> list:
 
 
 # ---------------------------------------------------------------------------
+# Converters for new scan types (stages 9-15) → CBOM-compatible rows
+# ---------------------------------------------------------------------------
+
+def starttls_to_cbom_rows(data: dict, start_idx: int = 1) -> list:
+    """STARTTLS service checks (SMTP/IMAP/POP3/LDAP/FTP) → CBOM rows."""
+    rows = []
+    idx = start_idx
+    for chk in data.get("starttls_checks", []):
+        if chk.get("error"):
+            continue
+        host    = chk.get("hostname", "")
+        port    = chk.get("port", "")
+        service = chk.get("service", "")
+        system  = f"{host}:{port} ({service})"
+        cipher_d = chk.get("cipher_suite") or {}
+        tls_ver  = chk.get("tls_version", "")
+        weak     = chk.get("weak_findings", [])
+        if not weak and chk.get("starttls_supported", True):
+            continue
+        recs     = "\n".join(chk.get("recommendations", []))
+        algo     = _extract_algo_from_cipher(cipher_d.get("name", ""))
+        weak_str = "; ".join(f"{w.get('type')} [{w.get('severity')}]: {w.get('detail','')}" for w in weak)
+        rows.append({
+            "# (CBOM)":               f"CBOM #{idx}",
+            "System / Application":   system,
+            "File Path":              "",
+            "Line":                   "",
+            "Cryptographic Function": f"STARTTLS / {service} Encryption",
+            "Algorithm Used":         algo,
+            "Library / Module":       f"{service} / TLS {tls_ver}".strip(" /"),
+            "Key Length":             str(cipher_d.get("key_bits", "")),
+            "Purpose / Usage":        f"{service} transport encryption",
+            "PQC Risk":               "High" if weak else "Medium",
+            "Crypto-Agility Support": "Partial",
+            "Finding / Vulnerability": weak_str or "STARTTLS not supported",
+            "_path": system, "_line": "", "_mitigation": recs,
+        })
+        idx += 1
+    return rows
+
+
+def ike_to_cbom_rows(data: dict, start_idx: int = 1) -> list:
+    """IKE/IPsec VPN scan results → CBOM rows."""
+    rows = []
+    idx = start_idx
+    for chk in data.get("ike_checks", []):
+        if chk.get("error"):
+            continue
+        host    = chk.get("hostname", "")
+        port    = chk.get("port", "")
+        system  = f"{host}:{port}"
+        version = chk.get("ike_version", "IKE")
+        dh      = chk.get("preferred_dh_group") or {}
+        dh_name = dh.get("name", "Unknown DH Group")
+        weak    = chk.get("weak_findings", [])
+        if not weak and not chk.get("ikev1_enabled"):
+            continue
+        recs    = "\n".join(chk.get("recommendations", []))
+        weak_str = "; ".join(f"{w.get('type')} [{w.get('severity')}]: {w.get('detail','')}" for w in weak)
+        enc_algos = ", ".join(chk.get("encryption_algos", []))
+        rows.append({
+            "# (CBOM)":               f"CBOM #{idx}",
+            "System / Application":   system,
+            "File Path":              "",
+            "Line":                   "",
+            "Cryptographic Function": f"{version} Key Exchange",
+            "Algorithm Used":         dh_name,
+            "Library / Module":       version,
+            "Key Length":             enc_algos,
+            "Purpose / Usage":        "VPN / IPsec key exchange",
+            "PQC Risk":               "Low" if chk.get("pqc_ready") else "High",
+            "Crypto-Agility Support": "No",
+            "Finding / Vulnerability": weak_str or "No weak findings",
+            "_path": system, "_line": "", "_mitigation": recs,
+        })
+        idx += 1
+        if chk.get("ikev1_enabled"):
+            rows.append({
+                "# (CBOM)":               f"CBOM #{idx}",
+                "System / Application":   system,
+                "File Path":              "",
+                "Line":                   "",
+                "Cryptographic Function": "IKEv1 Key Exchange",
+                "Algorithm Used":         "IKEv1 (deprecated)",
+                "Library / Module":       "IKEv1",
+                "Key Length":             "",
+                "Purpose / Usage":        "VPN / IPsec key exchange",
+                "PQC Risk":               "High",
+                "Crypto-Agility Support": "No",
+                "Finding / Vulnerability": "IKEv1 is deprecated (RFC 9395); vulnerable to multiple attacks",
+                "_path": system, "_line": "", "_mitigation": "Migrate to IKEv2 with PQC hybrid DH groups.",
+            })
+            idx += 1
+    return rows
+
+
+def rdp_to_cbom_rows(data: dict, start_idx: int = 1) -> list:
+    """RDP crypto analysis → CBOM rows."""
+    rows = []
+    idx = start_idx
+    for chk in data.get("rdp_checks", []):
+        if chk.get("error"):
+            continue
+        host    = chk.get("hostname", "")
+        port    = chk.get("port", "")
+        system  = f"{host}:{port}"
+        proto   = chk.get("security_protocol", "Unknown")
+        cipher_d = chk.get("cipher_suite") or {}
+        tls_ver  = chk.get("tls_version", "")
+        weak    = chk.get("weak_findings", [])
+        if not weak and not chk.get("classic_rdp_security"):
+            continue
+        recs    = "\n".join(chk.get("recommendations", []))
+        algo    = _extract_algo_from_cipher(cipher_d.get("name", "")) or ("RC4" if chk.get("classic_rdp_security") else "")
+        weak_str = "; ".join(f"{w.get('type')} [{w.get('severity')}]: {w.get('detail','')}" for w in weak)
+        rows.append({
+            "# (CBOM)":               f"CBOM #{idx}",
+            "System / Application":   system,
+            "File Path":              "",
+            "Line":                   "",
+            "Cryptographic Function": "RDP Session Encryption",
+            "Algorithm Used":         algo,
+            "Library / Module":       f"RDP / {proto}",
+            "Key Length":             str(cipher_d.get("key_bits", "")),
+            "Purpose / Usage":        "Remote Desktop session encryption",
+            "PQC Risk":               "High" if (weak or chk.get("classic_rdp_security")) else "Medium",
+            "Crypto-Agility Support": "No",
+            "Finding / Vulnerability": weak_str or "No weak findings",
+            "_path": system, "_line": "", "_mitigation": recs,
+        })
+        idx += 1
+    return rows
+
+
+def smb_to_cbom_rows(data: dict, start_idx: int = 1) -> list:
+    """SMB version and encryption analysis → CBOM rows."""
+    rows = []
+    idx = start_idx
+    for chk in data.get("smb_checks", []):
+        if chk.get("error"):
+            continue
+        host    = chk.get("hostname", "")
+        port    = chk.get("port", "")
+        system  = f"{host}:{port}"
+        dialect = chk.get("dialect", "SMB")
+        ciphers = ", ".join(chk.get("cipher_ids", []))
+        weak    = chk.get("weak_findings", [])
+        if not weak:
+            continue
+        recs    = "\n".join(chk.get("recommendations", []))
+        weak_str = "; ".join(f"{w.get('type')} [{w.get('severity')}]: {w.get('detail','')}" for w in weak)
+        rows.append({
+            "# (CBOM)":               f"CBOM #{idx}",
+            "System / Application":   system,
+            "File Path":              "",
+            "Line":                   "",
+            "Cryptographic Function": "SMB Session Encryption / Authentication",
+            "Algorithm Used":         ciphers or ("None (SMBv1)" if chk.get("smb1_enabled") else "NTLM/Kerberos"),
+            "Library / Module":       dialect,
+            "Key Length":             "",
+            "Purpose / Usage":        "File sharing / SMB session encryption",
+            "PQC Risk":               "High" if (chk.get("smb1_enabled") or not chk.get("encryption_supported")) else "Medium",
+            "Crypto-Agility Support": "No",
+            "Finding / Vulnerability": weak_str or "No weak findings",
+            "_path": system, "_line": "", "_mitigation": recs,
+        })
+        idx += 1
+    return rows
+
+
+def db_to_cbom_rows(data: dict, start_idx: int = 1) -> list:
+    """Database TLS analysis → CBOM rows."""
+    rows = []
+    idx = start_idx
+    for chk in data.get("db_checks", []):
+        if chk.get("error"):
+            continue
+        host     = chk.get("hostname", "")
+        port     = chk.get("port", "")
+        service  = chk.get("service", "Database")
+        system   = f"{host}:{port} ({service})"
+        cipher_d = chk.get("cipher_suite") or {}
+        tls_ver  = chk.get("tls_version", "")
+        weak     = chk.get("weak_findings", [])
+        if not weak and chk.get("tls_supported", True):
+            continue
+        recs     = "\n".join(chk.get("recommendations", []))
+        algo     = _extract_algo_from_cipher(cipher_d.get("name", ""))
+        weak_str = "; ".join(f"{w.get('type')} [{w.get('severity')}]: {w.get('detail','')}" for w in weak)
+        rows.append({
+            "# (CBOM)":               f"CBOM #{idx}",
+            "System / Application":   system,
+            "File Path":              "",
+            "Line":                   "",
+            "Cryptographic Function": f"{service} Transport Encryption",
+            "Algorithm Used":         algo or ("None" if not chk.get("tls_supported") else ""),
+            "Library / Module":       f"{service} / TLS {tls_ver}".strip(" /"),
+            "Key Length":             str(cipher_d.get("key_bits", "")),
+            "Purpose / Usage":        f"{service} data-in-transit encryption",
+            "PQC Risk":               "High" if (not chk.get("tls_supported") or weak) else "Medium",
+            "Crypto-Agility Support": "No",
+            "Finding / Vulnerability": weak_str or ("No TLS" if not chk.get("tls_supported") else "No weak findings"),
+            "_path": system, "_line": "", "_mitigation": recs,
+        })
+        idx += 1
+    return rows
+
+
+def snmp_to_cbom_rows(data: dict, start_idx: int = 1) -> list:
+    """SNMP version/auth analysis → CBOM rows."""
+    rows = []
+    idx = start_idx
+    for chk in data.get("snmp_checks", []):
+        if chk.get("error"):
+            continue
+        host    = chk.get("hostname", "")
+        port    = chk.get("port", "")
+        system  = f"{host}:{port}"
+        weak    = chk.get("weak_findings", [])
+        if not weak:
+            continue
+        recs    = "\n".join(chk.get("recommendations", []))
+        versions = []
+        if chk.get("v1_enabled"):  versions.append("SNMPv1")
+        if chk.get("v2c_enabled"): versions.append("SNMPv2c")
+        if chk.get("v3_enabled"):  versions.append("SNMPv3")
+        ver_str = ", ".join(versions) or "Unknown"
+        weak_str = "; ".join(f"{w.get('type')} [{w.get('severity')}]: {w.get('detail','')}" for w in weak)
+        rows.append({
+            "# (CBOM)":               f"CBOM #{idx}",
+            "System / Application":   system,
+            "File Path":              "",
+            "Line":                   "",
+            "Cryptographic Function": "SNMP Authentication / Privacy",
+            "Algorithm Used":         "Community String (MD5/SHA)" if (chk.get("v1_enabled") or chk.get("v2c_enabled")) else "USM",
+            "Library / Module":       f"SNMP ({ver_str})",
+            "Key Length":             "",
+            "Purpose / Usage":        "Network device management authentication",
+            "PQC Risk":               "High" if (chk.get("v1_enabled") or chk.get("v2c_enabled")) else "Medium",
+            "Crypto-Agility Support": "No",
+            "Finding / Vulnerability": weak_str or "No weak findings",
+            "_path": system, "_line": "", "_mitigation": recs,
+        })
+        idx += 1
+    return rows
+
+
+def kerberos_to_cbom_rows(data: dict, start_idx: int = 1) -> list:
+    """Kerberos KDC encryption type analysis → CBOM rows."""
+    rows = []
+    idx = start_idx
+    for chk in data.get("kerberos_checks", []):
+        if chk.get("error"):
+            continue
+        host    = chk.get("hostname", "")
+        port    = chk.get("port", "")
+        system  = f"{host}:{port}"
+        etypes  = ", ".join(chk.get("etype_names", []))
+        weak    = chk.get("weak_findings", [])
+        if not weak:
+            continue
+        recs    = "\n".join(chk.get("recommendations", []))
+        weak_str = "; ".join(f"{w.get('type')} [{w.get('severity')}]: {w.get('detail','')}" for w in weak)
+        rows.append({
+            "# (CBOM)":               f"CBOM #{idx}",
+            "System / Application":   system,
+            "File Path":              "",
+            "Line":                   "",
+            "Cryptographic Function": "Kerberos Ticket Encryption",
+            "Algorithm Used":         etypes or "Unknown",
+            "Library / Module":       "Kerberos KDC",
+            "Key Length":             "",
+            "Purpose / Usage":        "Kerberos authentication / ticket encryption",
+            "PQC Risk":               "High" if (chk.get("rc4_enabled") or chk.get("des_enabled")) else "Medium",
+            "Crypto-Agility Support": "No",
+            "Finding / Vulnerability": weak_str or "No weak findings",
+            "_path": system, "_line": "", "_mitigation": recs,
+        })
+        idx += 1
+    return rows
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 def main(
     sbom_path, grype_path, cbom_path, mini_path, out_path,
     tls_path=None, ssh_path=None, cert_path=None, config_path=None,
+    starttls_path=None, ike_path=None, rdp_path=None, smb_path=None,
+    db_path=None, snmp_path=None, kerberos_path=None,
 ):
     # ---- load scan data ----
     sbom  = load_json(sbom_path)
     grype = load_json(grype_path)
     cbom  = load_json(cbom_path)
-    # mini_pqc reserved for future linkage
     _mini = load_json(mini_path)
 
     grype_worst = parse_grype_worst_severity_by_pkg(grype)
     sbom_rows   = parse_sbom_rows(sbom, grype_worst)
     cbom_rows   = parse_cbom_rows(cbom)
 
-    # Optional scan JSONs (sheets 5-8 sources)
-    tls_data    = load_json(tls_path)    if tls_path    else None
-    ssh_data    = load_json(ssh_path)    if ssh_path    else None
-    cert_data   = load_json(cert_path)   if cert_path   else None
-    config_data = load_json(config_path) if config_path else None
+    # ---- load all optional scan sources ----
+    tls_data      = load_json(tls_path)      if tls_path      else None
+    ssh_data      = load_json(ssh_path)      if ssh_path      else None
+    cert_data     = load_json(cert_path)     if cert_path     else None
+    config_data   = load_json(config_path)   if config_path   else None
+    starttls_data = load_json(starttls_path) if starttls_path else None
+    ike_data      = load_json(ike_path)      if ike_path      else None
+    rdp_data      = load_json(rdp_path)      if rdp_path      else None
+    smb_data      = load_json(smb_path)      if smb_path      else None
+    db_data       = load_json(db_path)       if db_path       else None
+    snmp_data     = load_json(snmp_path)     if snmp_path     else None
+    kerberos_data = load_json(kerberos_path) if kerberos_path else None
 
-    # Combine scan findings (sheets 5-8) into CBOM rows so all data lands in sheets 0-4
+    # ---- combine all scan sources into one CBOM row list ----
     extra_cbom: list = []
-    if tls_data:
-        extra_cbom += tls_to_cbom_rows(tls_data, start_idx=len(cbom_rows) + 1)
-    if ssh_data:
-        extra_cbom += ssh_to_cbom_rows(ssh_data, start_idx=len(cbom_rows) + len(extra_cbom) + 1)
-    if cert_data:
-        extra_cbom += cert_to_cbom_rows(cert_data, start_idx=len(cbom_rows) + len(extra_cbom) + 1)
-    if config_data:
-        extra_cbom += config_to_cbom_rows(config_data, start_idx=len(cbom_rows) + len(extra_cbom) + 1)
+    def _add(fn, src):
+        if src:
+            extra_cbom.extend(fn(src, start_idx=len(cbom_rows) + len(extra_cbom) + 1))
+
+    _add(tls_to_cbom_rows,      tls_data)
+    _add(ssh_to_cbom_rows,      ssh_data)
+    _add(cert_to_cbom_rows,     cert_data)
+    _add(config_to_cbom_rows,   config_data)
+    _add(starttls_to_cbom_rows, starttls_data)
+    _add(ike_to_cbom_rows,      ike_data)
+    _add(rdp_to_cbom_rows,      rdp_data)
+    _add(smb_to_cbom_rows,      smb_data)
+    _add(db_to_cbom_rows,       db_data)
+    _add(snmp_to_cbom_rows,     snmp_data)
+    _add(kerberos_to_cbom_rows, kerberos_data)
 
     all_cbom_rows = renumber_cbom_rows(cbom_rows + extra_cbom)
 
-    # Risk rows are generated from the full combined CBOM
+    # ---- risk rows from full combined CBOM ----
     rr_rows, ra_rows = risk_rows_from_cbom(all_cbom_rows)
 
     inventory_rows = parse_inventory_rows(
         sbom, grype_worst, all_cbom_rows,
-        mini_pqc=_mini, tls_data=tls_data, ssh_data=ssh_data,
-        cert_data=cert_data, config_data=config_data,
+        mini_pqc=_mini,
+        tls_data=tls_data,       ssh_data=ssh_data,
+        cert_data=cert_data,     config_data=config_data,
+        starttls_data=starttls_data, ike_data=ike_data,
+        rdp_data=rdp_data,       smb_data=smb_data,
+        db_data=db_data,         snmp_data=snmp_data,
+        kerberos_data=kerberos_data,
     )
 
     # ---- start from template (preserves static sheets + all styling) ----

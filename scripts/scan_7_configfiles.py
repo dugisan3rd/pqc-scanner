@@ -132,6 +132,60 @@ _RULES = [
     (r"\bmd5_password\b|\bpassword_encryption\s*=\s*md5\b", "Weak Password Hash", "High",
      "MD5 password hashing configured (e.g. PostgreSQL md5_password)",
      "Use scram-sha-256 (PostgreSQL) or bcrypt/Argon2id"),
+
+    # ----- SSL/TLS compression -----
+    (r"\bssl_compression\s+on\b",       "TLS Compression Enabled", "High",
+     "SSL/TLS compression enabled — vulnerable to CRIME attack (CVE-2012-4929)",
+     "Set ssl_compression off (nginx) or compile OpenSSL without zlib"),
+    (r"\bSSLCompression\s+on\b",        "TLS Compression Enabled", "High",
+     "Apache SSLCompression on — CRIME attack risk",
+     "Set SSLCompression off in Apache config"),
+
+    # ----- Weak elliptic curves -----
+    (r"\b(?:secp112r1|secp128r1|secp160r1|secp192r1|secp224r1|prime192v1)\b", "Weak EC Curve", "High",
+     "Elliptic curve < 256 bits is classically weak and easily broken",
+     "Use P-384 (secp384r1) or X25519 as minimum; prefer X448 or ML-KEM for PQC"),
+    (r"\b(?:secp256k1|prime256v1|P-256|secp256r1)\b", "Weak EC Curve", "Medium",
+     "P-256 (secp256r1) is quantum-vulnerable to Shor's algorithm on a CRQC",
+     "Migrate to P-384 or X25519 short-term; ML-KEM for PQC readiness"),
+
+    # ----- SSH-specific weak settings -----
+    (r"StrictHostKeyChecking\s+no\b",   "SSH Host Verification Disabled", "Critical",
+     "StrictHostKeyChecking=no disables SSH host key verification — trivial MitM",
+     "Set StrictHostKeyChecking yes or accept and pin host keys"),
+    (r"UserKnownHostsFile\s+/dev/null\b", "SSH Host Verification Disabled", "Critical",
+     "SSH known_hosts discarded — no host key pinning, MitM trivially possible",
+     "Remove UserKnownHostsFile /dev/null; maintain a real known_hosts file"),
+    (r"PermitRootLogin\s+(?:yes|without-password|prohibit-password)\b", "SSH Root Login", "High",
+     "SSH root login permitted — increases blast radius of credential compromise",
+     "Set PermitRootLogin no; use sudo for privilege escalation"),
+    (r"PasswordAuthentication\s+yes\b", "SSH Password Auth", "Medium",
+     "SSH password authentication enabled — vulnerable to brute-force and credential stuffing",
+     "Set PasswordAuthentication no; enforce public-key authentication only"),
+    (r"(?:Ciphers|ciphers)\s+[^\n]*(?:3des-cbc|arcfour|blowfish-cbc|cast128-cbc|aes128-cbc|aes192-cbc|aes256-cbc)\b",
+     "Weak SSH Cipher", "High",
+     "SSH config includes weak or non-AEAD cipher (CBC mode or broken stream cipher)",
+     "Use aes256-gcm@openssh.com or chacha20-poly1305@openssh.com"),
+    (r"(?:MACs|macs)\s+[^\n]*(?:hmac-md5|hmac-sha1(?!-etm)|hmac-ripemd)\b", "Weak SSH MAC", "High",
+     "SSH config includes deprecated MAC algorithm (MD5 or SHA-1 based)",
+     "Use hmac-sha2-256-etm@openssh.com or hmac-sha2-512-etm@openssh.com"),
+    (r"(?:KexAlgorithms|kexalgorithms)\s+[^\n]*(?:diffie-hellman-group1|diffie-hellman-group14-sha1|ecdh-sha2-nistp256)\b",
+     "Weak SSH KEX", "High",
+     "SSH KexAlgorithms includes weak or quantum-vulnerable key exchange",
+     "Add sntrup761x25519-sha512@openssh.com as first KEX; remove SHA-1 variants"),
+
+    # ----- TLS version enforcement -----
+    (r"ssl_protocols\s+(?!.*TLSv1\.3)[^\n;]+;", "TLS 1.3 Not Enforced", "Medium",
+     "TLS 1.3 not included in ssl_protocols — missing PQC hybrid KEX support",
+     "Add TLSv1.3 to ssl_protocols; it is required for ML-KEM hybrid ciphers"),
+    (r"SSLProtocol\s+(?!.*TLSv1\.3|-all|\+TLSv1\.3)[^\n]+", "TLS 1.3 Not Enforced", "Medium",
+     "Apache SSLProtocol does not include TLS 1.3",
+     "Add +TLSv1.3 to SSLProtocol directive"),
+
+    # ----- Minimum protocol version -----
+    (r"MinProtocol\s*=\s*(?:TLSv1\.0|TLSv1\.1|TLSv1\.2)\b", "Weak Min Protocol", "Medium",
+     "OpenSSL MinProtocol set below TLS 1.3 — PQC hybrid KEX requires TLS 1.3",
+     "Set MinProtocol = TLSv1.3 in openssl.cnf for full PQC readiness"),
 ]
 
 # Compile all patterns once

@@ -24,22 +24,29 @@ from typing import Optional
 # ---------------------------------------------------------------------------
 
 # group_id → (human_name, severity, shor_vulnerable)
+# Severity reflects both classical strength and Shor vulnerability on a CRQC:
+#   Critical  = broken classically or extremely small key (< 2048-bit MODP, < P-256)
+#   High      = broken by Shor on a CRQC, but classically acceptable (2048-bit MODP, NIST curves)
+#   Medium    = transitional — large enough MODP to require more qubits, but still Shor-vulnerable
+#               (NIST SP 800-56A Rev3 transitional: 3072–4096-bit MODP)
+#   Low       = Shor-resistant classical DH (6144/8192-bit, requires impractically large QC)
+#   PQC Ready = post-quantum hybrid or pure PQC KEX
 _IKE_DH_GROUPS: dict[int, tuple[str, str, bool]] = {
     1:  ("768-bit MODP",          "Critical", True),
     2:  ("1024-bit MODP",         "Critical", True),
-    5:  ("1536-bit MODP",         "High",     True),
-    14: ("2048-bit MODP",         "High",     True),
-    15: ("3072-bit MODP",         "High",     True),
-    16: ("4096-bit MODP",         "High",     True),
-    17: ("6144-bit MODP",         "Medium",   True),
-    18: ("8192-bit MODP",         "Medium",   True),
-    19: ("P-256 (NIST)",          "High",     True),
-    20: ("P-384 (NIST)",          "High",     True),
-    21: ("P-521 (NIST)",          "High",     True),
-    31: ("X25519",                "High",     True),
-    32: ("X448",                  "High",     True),
-    34: ("ML-KEM-768 hybrid",     "Low",      False),
-    35: ("ML-KEM-1024 hybrid",    "Low",      False),
+    5:  ("1536-bit MODP",         "Critical", True),
+    14: ("2048-bit MODP",         "High",     True),   # NIST transitional (formerly acceptable)
+    15: ("3072-bit MODP",         "Medium",   True),   # NIST acceptable transitional
+    16: ("4096-bit MODP",         "Medium",   True),   # NIST acceptable transitional
+    17: ("6144-bit MODP",         "Low",      True),   # Shor requires impractically large QC
+    18: ("8192-bit MODP",         "Low",      True),   # Shor requires impractically large QC
+    19: ("P-256 (NIST)",          "High",     True),   # Shor breaks ECC efficiently
+    20: ("P-384 (NIST)",          "High",     True),   # Shor breaks ECC efficiently
+    21: ("P-521 (NIST)",          "High",     True),   # Shor breaks ECC efficiently
+    31: ("X25519",                "High",     True),   # Shor breaks ECDH efficiently
+    32: ("X448",                  "High",     True),   # Shor breaks ECDH efficiently
+    34: ("ML-KEM-768 hybrid",     "Low",      False),  # PQC hybrid — quantum-safe
+    35: ("ML-KEM-1024 hybrid",    "Low",      False),  # PQC hybrid — quantum-safe
 }
 
 # Groups included in our IKEv2 SA proposal (ordered most→least preferred)
@@ -432,7 +439,7 @@ def _check_ike_port(hostname: str, port: int) -> dict:
         })
 
     if chosen_group_id is not None:
-        group_info = _IKE_DH_GROUPS.get(chosen_group_id, (f"Unknown (id={chosen_group_id})", "Unknown", True))
+        group_info = _IKE_DH_GROUPS.get(chosen_group_id, (f"Unknown (id={chosen_group_id})", "Unknown", False))
         result["preferred_dh_group"] = {
             "id":              chosen_group_id,
             "name":            group_info[0],

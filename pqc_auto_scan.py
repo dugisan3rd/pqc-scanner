@@ -5,6 +5,7 @@ PQC Auto Server Scanner
 Automates a full Post-Quantum Cryptography (PQC) readiness assessment
 for a server, covering:
 
+  Stage 0  - PORTS      : Open Port Discovery (TCP + UDP)
   Stage 1  - SBOM       : Software Bill of Materials (Syft)
   Stage 2  - VA         : Vulnerability Assessment (Grype)
   Stage 3  - PQC        : System-level PQC Readiness (mini-pqc-scanner)
@@ -13,7 +14,14 @@ for a server, covering:
   Stage 6  - SSH        : Server SSH Algorithm Analysis
   Stage 7  - CERT FILES : X.509 Certificate & Key File Scanner
   Stage 8  - CONFIG     : Server/App Config File Weak-Crypto Scanner
-  Stage 9  - REPORT     : Excel Workbook (all stages)
+  Stage 9  - STARTTLS   : SMTP/IMAP/POP3/LDAP/FTP STARTTLS Analysis
+  Stage 10 - IKE/IPsec  : VPN IKEv1/IKEv2 Cryptographic Analysis
+  Stage 11 - RDP        : Remote Desktop Protocol Crypto Analysis
+  Stage 12 - SMB        : SMB Version & Encryption Analysis
+  Stage 13 - DB         : Database TLS (MySQL/PG/MSSQL/MongoDB/Redis)
+  Stage 14 - SNMP       : SNMP Version & Authentication Analysis
+  Stage 15 - KERBEROS   : Kerberos KDC Encryption Type Analysis
+  Stage 16 - REPORT     : Excel Workbook (all stages)
 
 Usage
 -----
@@ -74,6 +82,7 @@ MINIPQC_BIN = get_binary_path(OS_VERSION, ROOT, "mini_pqc_scanner")
 SEMGREP_BIN = get_binary_path(OS_VERSION, ROOT, "SEMGREP")
 
 # ---------- SCAN MODULES ----------
+from scripts.scan_0_portdiscovery  import discover_open_ports
 from scripts.scan_1_syft_sbom      import scan_syft_sbom
 from scripts.scan_2_grype_va       import scan_grype_va
 from scripts.scan_3_mini_pqc       import scan_minipqc
@@ -81,6 +90,13 @@ from scripts.scan_4_semgrep_static import scan_semgrep_cbom
 from scripts.scan_5_ssh            import scan_ssh
 from scripts.scan_6_certfiles      import scan_certfiles
 from scripts.scan_7_configfiles    import scan_configfiles
+from scripts.scan_8_starttls       import scan_starttls
+from scripts.scan_9_ike            import scan_ike
+from scripts.scan_10_rdp           import scan_rdp
+from scripts.scan_11_smb           import scan_smb
+from scripts.scan_12_db            import scan_databases
+from scripts.scan_13_snmp          import scan_snmp
+from scripts.scan_14_kerberos      import scan_kerberos
 
 # ---------- REPORT MODULE ----------
 from scripts.excel2.pqc_export_full import main as _generate_excel_report
@@ -99,10 +115,14 @@ _WEAK_CIPHER_MARKERS = (
 # TLS protocol versions considered too old
 _WEAK_TLS_VERSIONS = {"SSLv2", "SSLv3", "TLSv1", "TLSv1.1"}
 
-# Fragments that indicate a PQC or hybrid cipher is in use
+# Fragments that indicate a PQC or hybrid cipher is in use.
+# Only include substrings that actually appear in deployed TLS cipher suite names.
+# SPHINCS/NTRU/FRODO are never used as TLS cipher names — excluded to avoid false positives.
 _PQC_CIPHER_INDICATORS = (
-    "KYBER", "ML-KEM", "ML-DSA", "DILITHIUM",
-    "FALCON", "SPHINCS", "NTRU", "FRODO", "X25519KYBER",
+    "KYBER", "ML-KEM", "MLKEM",
+    "ML-DSA", "MLDSA",
+    "DILITHIUM", "FALCON",
+    "X25519KYBER", "X25519MLKEM",
 )
 
 # Common RSA/EC key sizes that are considered "quantum-weak"
@@ -122,15 +142,6 @@ def _parse_cert_expiry(not_after: str) -> Optional[datetime.datetime]:
         except ValueError:
             continue
     return None
-
-
-def _cert_key_type(cert_der_info: dict) -> str:
-    """
-    Best-effort extraction of the public-key type from a DER cert dict.
-    ssl.getpeercert(binary_form=False) does not expose this directly;
-    we infer from the subject public key info embedded in the cipher name.
-    """
-    return "unknown"
 
 
 def check_tls_server(hostname: str, port: int = 443, timeout: int = 10) -> dict:
@@ -356,6 +367,14 @@ def print_summary(
     cert_json:      Optional[Path],
     config_json:    Optional[Path],
     excel_path:     Optional[Path],
+    ports_json:     Optional[Path] = None,
+    starttls_json:  Optional[Path] = None,
+    ike_json:       Optional[Path] = None,
+    rdp_json:       Optional[Path] = None,
+    smb_json:       Optional[Path] = None,
+    db_json:        Optional[Path] = None,
+    snmp_json:      Optional[Path] = None,
+    kerberos_json:  Optional[Path] = None,
 ) -> None:
     """Print a human-readable summary table of all scan results."""
 
@@ -497,11 +516,105 @@ def print_summary(
     else:
         logger.info("[8] CONFIG      |  SKIPPED / NOT AVAILABLE")
 
+    # ---- STARTTLS ----
+    starttls_data = _load_json(starttls_json)
+    if starttls_data:
+        checks = starttls_data.get("starttls_checks", [])
+        weak_total = sum(len(c.get("weak_findings", [])) for c in checks)
+        logger.info(f"[9]  STARTTLS    | {len(checks):>5} service(s)   |  {weak_total} weak finding(s)")
+        for c in checks:
+            svc = f"{c.get('service','?')}:{c.get('port','?')}"
+            st  = "STARTTLS" if c.get("starttls_supported") else ("IMPLICIT-TLS" if not c.get("error") else "ERROR")
+            tv  = c.get("tls_version") or "?"
+            wn  = len(c.get("weak_findings", []))
+            if c.get("error"):
+                logger.info(f"      {svc}  {c['error']}")
+            else:
+                logger.info(f"      {svc}  {st}  TLS:{tv}  weak:{wn}")
+    else:
+        logger.info("[9]  STARTTLS    |  SKIPPED / NOT AVAILABLE")
+
+    # ---- IKE/IPsec ----
+    ike_data = _load_json(ike_json)
+    if ike_data:
+        checks = ike_data.get("ike_checks", [])
+        weak_total = sum(len(c.get("weak_findings", [])) for c in checks)
+        logger.info(f"[10] IKE/IPsec  | {len(checks):>5} target(s)    |  {weak_total} weak finding(s)")
+        for c in checks:
+            pqc = "PQC-HYBRID" if c.get("pqc_ready") else "NOT PQC-READY"
+            ver = c.get("ike_version", "?")
+            dh  = (c.get("preferred_dh_group") or {}).get("name", "?")
+            logger.info(f"      {c.get('hostname')}:{c.get('port')}  {ver}  DH:{dh}  {pqc}")
+    else:
+        logger.info("[10] IKE/IPsec  |  SKIPPED / NOT AVAILABLE")
+
+    # ---- RDP ----
+    rdp_data = _load_json(rdp_json)
+    if rdp_data:
+        checks = rdp_data.get("rdp_checks", [])
+        weak_total = sum(len(c.get("weak_findings", [])) for c in checks)
+        logger.info(f"[11] RDP        | {len(checks):>5} target(s)    |  {weak_total} weak finding(s)")
+        for c in checks:
+            proto = c.get("security_protocol", "?")
+            tv    = c.get("tls_version") or "?"
+            logger.info(f"      {c.get('hostname')}:{c.get('port')}  {proto}  TLS:{tv}")
+    else:
+        logger.info("[11] RDP        |  SKIPPED / NOT AVAILABLE")
+
+    # ---- SMB ----
+    smb_data = _load_json(smb_json)
+    if smb_data:
+        checks = smb_data.get("smb_checks", [])
+        weak_total = sum(len(c.get("weak_findings", [])) for c in checks)
+        smb1_count = sum(1 for c in checks if c.get("smb1_enabled"))
+        logger.info(f"[12] SMB        | {len(checks):>5} target(s)    |  {weak_total} weak finding(s)  |  SMBv1 enabled: {smb1_count}")
+        for c in checks:
+            dial  = c.get("dialect", "?")
+            enc   = "encrypted" if c.get("encryption_supported") else "NOT encrypted"
+            v1    = "  [SMBv1!]" if c.get("smb1_enabled") else ""
+            logger.info(f"      {c.get('hostname')}:{c.get('port')}  {dial}  {enc}{v1}")
+    else:
+        logger.info("[12] SMB        |  SKIPPED / NOT AVAILABLE")
+
+    # ---- Databases ----
+    db_data = _load_json(db_json)
+    if db_data:
+        checks = db_data.get("db_checks", [])
+        weak_total = sum(len(c.get("weak_findings", [])) for c in checks)
+        no_tls = sum(1 for c in checks if not c.get("tls_supported") and not c.get("error"))
+        logger.info(f"[13] DATABASES  | {len(checks):>5} endpoint(s)  |  {weak_total} weak finding(s)  |  no-TLS: {no_tls}")
+        for c in checks:
+            svc = c.get("service", "?")
+            tls = c.get("tls_version") or ("no-TLS" if not c.get("tls_supported") else "?")
+            logger.info(f"      {c.get('hostname')}:{c.get('port')}  {svc}  {tls}")
+    else:
+        logger.info("[13] DATABASES  |  SKIPPED / NOT AVAILABLE")
+
+    # ---- SNMP ----
+    snmp_data = _load_json(snmp_json)
+    if snmp_data:
+        checks = snmp_data.get("snmp_checks", [])
+        weak_total = sum(len(c.get("weak_findings", [])) for c in checks)
+        v1v2 = sum(1 for c in checks if c.get("v1_enabled") or c.get("v2c_enabled"))
+        logger.info(f"[14] SNMP       | {len(checks):>5} target(s)    |  {weak_total} weak finding(s)  |  v1/v2c enabled: {v1v2}")
+    else:
+        logger.info("[14] SNMP       |  SKIPPED / NOT AVAILABLE")
+
+    # ---- Kerberos ----
+    krb_data = _load_json(kerberos_json)
+    if krb_data:
+        checks = krb_data.get("kerberos_checks", [])
+        weak_total = sum(len(c.get("weak_findings", [])) for c in checks)
+        rc4_count = sum(1 for c in checks if c.get("rc4_enabled"))
+        logger.info(f"[15] KERBEROS   | {len(checks):>5} KDC(s)       |  {weak_total} weak finding(s)  |  RC4 enabled: {rc4_count}")
+    else:
+        logger.info("[15] KERBEROS   |  SKIPPED / NOT AVAILABLE")
+
     # ---- Report ----
     if excel_path and excel_path.exists():
-        logger.success(f"[9] REPORT      |  {excel_path}")
+        logger.success(f"[16] REPORT     |  {excel_path}")
     else:
-        logger.info("[9] REPORT      |  SKIPPED / NOT AVAILABLE")
+        logger.info("[16] REPORT     |  SKIPPED / NOT AVAILABLE")
 
     logger.info(bar)
 
@@ -551,15 +664,23 @@ def main() -> int:
     )
 
     # ---- stage toggles ----
-    parser.add_argument("--skip-sbom",    action="store_true", help="Skip Stage 1 — SBOM generation")
-    parser.add_argument("--skip-va",      action="store_true", help="Skip Stage 2 — Vulnerability Assessment")
-    parser.add_argument("--skip-pqc",     action="store_true", help="Skip Stage 3 — PQC system readiness check")
-    parser.add_argument("--skip-cbom",    action="store_true", help="Skip Stage 4 — CBOM/Semgrep scan")
-    parser.add_argument("--skip-tls",     action="store_true", help="Skip Stage 5 — TLS/SSL server check")
-    parser.add_argument("--skip-ssh",     action="store_true", help="Skip Stage 6 — SSH algorithm analysis")
-    parser.add_argument("--skip-certs",   action="store_true", help="Skip Stage 7 — Certificate/key file scan")
-    parser.add_argument("--skip-configs", action="store_true", help="Skip Stage 8 — Config file weak-crypto scan")
-    parser.add_argument("--skip-report",  action="store_true", help="Skip Stage 9 — Excel report generation")
+    parser.add_argument("--skip-ports",    action="store_true", help="Skip Stage 0  — Port discovery")
+    parser.add_argument("--skip-sbom",     action="store_true", help="Skip Stage 1  — SBOM generation")
+    parser.add_argument("--skip-va",       action="store_true", help="Skip Stage 2  — Vulnerability Assessment")
+    parser.add_argument("--skip-pqc",      action="store_true", help="Skip Stage 3  — PQC system readiness check")
+    parser.add_argument("--skip-cbom",     action="store_true", help="Skip Stage 4  — CBOM/Semgrep scan")
+    parser.add_argument("--skip-tls",      action="store_true", help="Skip Stage 5  — TLS/SSL server check")
+    parser.add_argument("--skip-ssh",      action="store_true", help="Skip Stage 6  — SSH algorithm analysis")
+    parser.add_argument("--skip-certs",    action="store_true", help="Skip Stage 7  — Certificate/key file scan")
+    parser.add_argument("--skip-configs",  action="store_true", help="Skip Stage 8  — Config file weak-crypto scan")
+    parser.add_argument("--skip-starttls", action="store_true", help="Skip Stage 9  — STARTTLS service analysis")
+    parser.add_argument("--skip-ike",      action="store_true", help="Skip Stage 10 — IKE/IPsec VPN analysis")
+    parser.add_argument("--skip-rdp",      action="store_true", help="Skip Stage 11 — RDP crypto analysis")
+    parser.add_argument("--skip-smb",      action="store_true", help="Skip Stage 12 — SMB analysis")
+    parser.add_argument("--skip-db",       action="store_true", help="Skip Stage 13 — Database TLS analysis")
+    parser.add_argument("--skip-snmp",     action="store_true", help="Skip Stage 14 — SNMP analysis")
+    parser.add_argument("--skip-kerberos", action="store_true", help="Skip Stage 15 — Kerberos KDC analysis")
+    parser.add_argument("--skip-report",   action="store_true", help="Skip Stage 16 — Excel report generation")
 
     # ---- report ----
     parser.add_argument(
@@ -577,6 +698,7 @@ def main() -> int:
     ports = [int(p.strip()) for p in args.ports.split(",") if p.strip().isdigit()] or [443]
     ssh_ports = [int(p.strip()) for p in args.ssh_ports.split(",") if p.strip().isdigit()] or [22]
 
+    ports_json:    Optional[Path] = None
     sbom_json:     Optional[Path] = None
     grype_json:    Optional[Path] = None
     mini_pqc_json: Optional[Path] = None
@@ -585,28 +707,80 @@ def main() -> int:
     ssh_json:      Optional[Path] = None
     cert_json:     Optional[Path] = None
     config_json:   Optional[Path] = None
+    starttls_json: Optional[Path] = None
+    ike_json:      Optional[Path] = None
+    rdp_json:      Optional[Path] = None
+    smb_json:      Optional[Path] = None
+    db_json:       Optional[Path] = None
+    snmp_json:     Optional[Path] = None
+    kerberos_json: Optional[Path] = None
     excel_path:    Optional[Path] = None
 
     logger.info("=" * 72)
     logger.info("  PQC AUTO SERVER SCAN  —  Starting")
     logger.info(f"  Target path   : {args.path}")
-    logger.info(f"  Target server : {args.server or '(none — TLS/SSH stages will be skipped)'}")
+    logger.info(f"  Target server : {args.server or '(none — server stages will be skipped)'}")
     logger.info(f"  TLS ports     : {ports}    SSH ports: {ssh_ports}")
     logger.info(f"  Run timestamp : {TIMESTAMP}  suffix: {RANDOM_SUFFIX}")
     logger.info("=" * 72)
 
     try:
         # ------------------------------------------------------------------
+        # STAGE 0 — Port Discovery
+        # ------------------------------------------------------------------
+        if not args.skip_ports and args.server:
+            logger.info(f">>> STAGE 0  — Port Discovery  ({args.server})")
+            try:
+                ports_json = discover_open_ports(args.server, TIMESTAMP, RANDOM_SUFFIX, root=ROOT)
+            except Exception as _exc:
+                logger.warning(f">>> STAGE 0  — Failed: {_exc}. Continuing without port data.")
+        elif args.skip_ports:
+            logger.warning(">>> STAGE 0  — Skipped (--skip-ports)")
+        else:
+            logger.warning(">>> STAGE 0  — Skipped (no --server specified)")
+
+        # Extract discovered open ports — used to gate stages 9-15
+        open_tcp: set = set()
+        open_udp: set = set()
+        _ports_scanned = ports_json is not None
+        if ports_json and ports_json.exists():
+            try:
+                _pd = json.loads(ports_json.read_text(encoding="utf-8"))
+                open_tcp = {int(p) for p in _pd.get("tcp_open", {}).keys()}
+                open_udp = {int(p) for p in _pd.get("udp_responsive", {}).keys()}
+                logger.info(f"    [PORTS] TCP open : {sorted(open_tcp)}")
+                logger.info(f"    [PORTS] UDP open : {sorted(open_udp)}")
+            except Exception as _pe:
+                logger.warning(f"    [PORTS] Could not parse port data: {_pe}")
+                _ports_scanned = False
+
+        def _port_open(*tcp_ports: int, udp: tuple = ()) -> bool:
+            """Return True if a relevant port was found open, or if Stage 0 was skipped/failed."""
+            if not _ports_scanned:
+                return True
+            return any(p in open_tcp for p in tcp_ports) or any(p in open_udp for p in udp)
+
+        # ------------------------------------------------------------------
         # STAGE 1 — SBOM
         # ------------------------------------------------------------------
         if not args.skip_sbom:
             logger.info(">>> STAGE 1 — SBOM Generation (Syft)")
-            sbom_json = scan_syft_sbom(SYFT_BIN, args.path, TIMESTAMP, RANDOM_SUFFIX)
+            try:
+                sbom_json = scan_syft_sbom(SYFT_BIN, args.path, TIMESTAMP, RANDOM_SUFFIX)
+            except Exception as _exc:
+                logger.warning(f">>> STAGE 1 — Failed: {_exc}. Trying latest cached SBOM.")
+                sbom_json = _latest_raw("1_syft_sbom")
+                if sbom_json:
+                    logger.info(f"    Using cached: {sbom_json}")
+                else:
+                    logger.warning("    No cached SBOM found — downstream stages may be skipped.")
         else:
             logger.warning(">>> STAGE 1 — Skipped (--skip-sbom)")
             sbom_json = _latest_raw("1_syft_sbom")
             if sbom_json:
                 logger.info(f"    Using latest SBOM: {sbom_json}")
+            else:
+                logger.warning("    No cached SBOM found — Stage 2 (VA) and Stage 16 (Report) will be skipped.")
 
         # ------------------------------------------------------------------
         # STAGE 2 — Vulnerability Assessment
@@ -614,9 +788,20 @@ def main() -> int:
         if not args.skip_va:
             if sbom_json and sbom_json.exists():
                 logger.info(">>> STAGE 2 — Vulnerability Assessment (Grype)")
-                grype_json = scan_grype_va(GRYPE_BIN, sbom_json, TIMESTAMP, RANDOM_SUFFIX)
+                try:
+                    grype_json = scan_grype_va(GRYPE_BIN, sbom_json, TIMESTAMP, RANDOM_SUFFIX)
+                except Exception as _exc:
+                    logger.warning(f">>> STAGE 2 — Failed: {_exc}. Trying latest cached VA.")
+                    grype_json = _latest_raw("2_grype_va")
+                    if grype_json:
+                        logger.info(f"    Using cached: {grype_json}")
             else:
                 logger.warning(">>> STAGE 2 — Skipped (no SBOM available from Stage 1)")
+                grype_json = _latest_raw("2_grype_va")
+                if grype_json:
+                    logger.info(f"    Using latest cached VA: {grype_json}")
+                else:
+                    logger.warning("    No cached VA found either — report may be incomplete.")
         else:
             logger.warning(">>> STAGE 2 — Skipped (--skip-va)")
             grype_json = _latest_raw("2_grype_va")
@@ -628,7 +813,13 @@ def main() -> int:
         # ------------------------------------------------------------------
         if not args.skip_pqc:
             logger.info(">>> STAGE 3 — PQC System Readiness (mini-pqc-scanner)")
-            mini_pqc_json = scan_minipqc(MINIPQC_BIN, TIMESTAMP, RANDOM_SUFFIX)
+            try:
+                mini_pqc_json = scan_minipqc(MINIPQC_BIN, TIMESTAMP, RANDOM_SUFFIX)
+            except Exception as _exc:
+                logger.warning(f">>> STAGE 3 — Failed: {_exc}. Trying latest cached PQC scan.")
+                mini_pqc_json = _latest_raw("3_mini_pqc")
+                if mini_pqc_json:
+                    logger.info(f"    Using cached: {mini_pqc_json}")
         else:
             logger.warning(">>> STAGE 3 — Skipped (--skip-pqc)")
             mini_pqc_json = _latest_raw("3_mini_pqc")
@@ -640,7 +831,13 @@ def main() -> int:
         # ------------------------------------------------------------------
         if not args.skip_cbom:
             logger.info(">>> STAGE 4 — CBOM Scan (Semgrep)")
-            cbom_json = scan_semgrep_cbom(SEMGREP_BIN, args.path, TIMESTAMP, RANDOM_SUFFIX)
+            try:
+                cbom_json = scan_semgrep_cbom(SEMGREP_BIN, args.path, TIMESTAMP, RANDOM_SUFFIX)
+            except Exception as _exc:
+                logger.warning(f">>> STAGE 4 — Failed: {_exc}. Trying latest cached CBOM.")
+                cbom_json = _latest_raw("4_semgrep_cbom")
+                if cbom_json:
+                    logger.info(f"    Using cached: {cbom_json}")
         else:
             logger.warning(">>> STAGE 4 — Skipped (--skip-cbom)")
             cbom_json = _latest_raw("4_semgrep_cbom")
@@ -652,8 +849,11 @@ def main() -> int:
         # ------------------------------------------------------------------
         if not args.skip_tls and args.server:
             logger.info(f">>> STAGE 5 — TLS/SSL Analysis  ({args.server}  ports: {ports})")
-            tls_checks = check_server_tls(args.server, ports)
-            tls_json = _save_tls_json(tls_checks, TIMESTAMP, RANDOM_SUFFIX)
+            try:
+                tls_checks = check_server_tls(args.server, ports)
+                tls_json = _save_tls_json(tls_checks, TIMESTAMP, RANDOM_SUFFIX)
+            except Exception as _exc:
+                logger.warning(f">>> STAGE 5 — Failed: {_exc}")
         elif args.skip_tls:
             logger.warning(">>> STAGE 5 — Skipped (--skip-tls)")
         else:
@@ -667,7 +867,10 @@ def main() -> int:
         # ------------------------------------------------------------------
         if not args.skip_ssh and args.server:
             logger.info(f">>> STAGE 6 — SSH Analysis  ({args.server}  ports: {ssh_ports})")
-            ssh_json = scan_ssh(args.server, ssh_ports, TIMESTAMP, RANDOM_SUFFIX, ROOT)
+            try:
+                ssh_json = scan_ssh(args.server, ssh_ports, TIMESTAMP, RANDOM_SUFFIX, ROOT)
+            except Exception as _exc:
+                logger.warning(f">>> STAGE 6 — Failed: {_exc}")
         elif args.skip_ssh:
             logger.warning(">>> STAGE 6 — Skipped (--skip-ssh)")
             ssh_json = _latest_raw("6_ssh_check")
@@ -682,7 +885,10 @@ def main() -> int:
         # ------------------------------------------------------------------
         if not args.skip_certs:
             logger.info(f">>> STAGE 7 — Certificate/Key File Scan  ({args.path})")
-            cert_json = scan_certfiles(args.path, TIMESTAMP, RANDOM_SUFFIX, ROOT)
+            try:
+                cert_json = scan_certfiles(args.path, TIMESTAMP, RANDOM_SUFFIX, ROOT)
+            except Exception as _exc:
+                logger.warning(f">>> STAGE 7 — Failed: {_exc}")
         else:
             logger.warning(">>> STAGE 7 — Skipped (--skip-certs)")
             cert_json = _latest_raw("7_cert_files")
@@ -694,7 +900,10 @@ def main() -> int:
         # ------------------------------------------------------------------
         if not args.skip_configs:
             logger.info(f">>> STAGE 8 — Config File Scan  ({args.path})")
-            config_json = scan_configfiles(args.path, TIMESTAMP, RANDOM_SUFFIX, ROOT)
+            try:
+                config_json = scan_configfiles(args.path, TIMESTAMP, RANDOM_SUFFIX, ROOT)
+            except Exception as _exc:
+                logger.warning(f">>> STAGE 8 — Failed: {_exc}")
         else:
             logger.warning(">>> STAGE 8 — Skipped (--skip-configs)")
             config_json = _latest_raw("8_config_scan")
@@ -702,54 +911,198 @@ def main() -> int:
                 logger.info(f"    Using latest config scan: {config_json}")
 
         # ------------------------------------------------------------------
-        # STAGE 9 — Excel Report
+        # STAGE 9 — STARTTLS Service Analysis
+        # ------------------------------------------------------------------
+        _starttls_ports = (25, 587, 143, 110, 389, 21, 465, 636, 993, 995)
+        if not args.skip_starttls and args.server:
+            if _port_open(*_starttls_ports):
+                logger.info(f">>> STAGE 9  — STARTTLS Analysis  ({args.server})")
+                try:
+                    starttls_json = scan_starttls(args.server, TIMESTAMP, RANDOM_SUFFIX, root=ROOT)
+                except Exception as _exc:
+                    logger.warning(f">>> STAGE 9  — Failed: {_exc}")
+            else:
+                logger.info(">>> STAGE 9  — Skipped (no mail/LDAP/FTP ports open from Stage 0)")
+        elif args.skip_starttls:
+            logger.warning(">>> STAGE 9  — Skipped (--skip-starttls)")
+            starttls_json = _latest_raw("8_starttls")
+        else:
+            logger.warning(">>> STAGE 9  — Skipped (no --server specified)")
+
+        # ------------------------------------------------------------------
+        # STAGE 10 — IKE/IPsec VPN Analysis
+        # ------------------------------------------------------------------
+        if not args.skip_ike and args.server:
+            if _port_open(udp=(500, 4500)):
+                logger.info(f">>> STAGE 10 — IKE/IPsec Analysis  ({args.server})")
+                try:
+                    ike_json = scan_ike(args.server, TIMESTAMP, RANDOM_SUFFIX, root=ROOT)
+                except Exception as _exc:
+                    logger.warning(f">>> STAGE 10 — Failed: {_exc}")
+            else:
+                logger.info(">>> STAGE 10 — Skipped (UDP 500/4500 not open from Stage 0)")
+        elif args.skip_ike:
+            logger.warning(">>> STAGE 10 — Skipped (--skip-ike)")
+            ike_json = _latest_raw("9_ike")
+        else:
+            logger.warning(">>> STAGE 10 — Skipped (no --server specified)")
+
+        # ------------------------------------------------------------------
+        # STAGE 11 — RDP Crypto Analysis
+        # ------------------------------------------------------------------
+        if not args.skip_rdp and args.server:
+            if _port_open(3389):
+                logger.info(f">>> STAGE 11 — RDP Analysis  ({args.server})")
+                try:
+                    rdp_json = scan_rdp(args.server, TIMESTAMP, RANDOM_SUFFIX, root=ROOT)
+                except Exception as _exc:
+                    logger.warning(f">>> STAGE 11 — Failed: {_exc}")
+            else:
+                logger.info(">>> STAGE 11 — Skipped (TCP 3389 not open from Stage 0)")
+        elif args.skip_rdp:
+            logger.warning(">>> STAGE 11 — Skipped (--skip-rdp)")
+            rdp_json = _latest_raw("10_rdp")
+        else:
+            logger.warning(">>> STAGE 11 — Skipped (no --server specified)")
+
+        # ------------------------------------------------------------------
+        # STAGE 12 — SMB Analysis
+        # ------------------------------------------------------------------
+        if not args.skip_smb and args.server:
+            if _port_open(445):
+                logger.info(f">>> STAGE 12 — SMB Analysis  ({args.server})")
+                try:
+                    smb_json = scan_smb(args.server, TIMESTAMP, RANDOM_SUFFIX, root=ROOT)
+                except Exception as _exc:
+                    logger.warning(f">>> STAGE 12 — Failed: {_exc}")
+            else:
+                logger.info(">>> STAGE 12 — Skipped (TCP 445 not open from Stage 0)")
+        elif args.skip_smb:
+            logger.warning(">>> STAGE 12 — Skipped (--skip-smb)")
+            smb_json = _latest_raw("11_smb")
+        else:
+            logger.warning(">>> STAGE 12 — Skipped (no --server specified)")
+
+        # ------------------------------------------------------------------
+        # STAGE 13 — Database TLS Analysis
+        # ------------------------------------------------------------------
+        _db_ports = (3306, 5432, 1433, 27017, 6379, 6380)
+        if not args.skip_db and args.server:
+            if _port_open(*_db_ports):
+                logger.info(f">>> STAGE 13 — Database TLS Analysis  ({args.server})")
+                try:
+                    db_json = scan_databases(args.server, TIMESTAMP, RANDOM_SUFFIX, root=ROOT)
+                except Exception as _exc:
+                    logger.warning(f">>> STAGE 13 — Failed: {_exc}")
+            else:
+                logger.info(">>> STAGE 13 — Skipped (no DB ports open from Stage 0)")
+        elif args.skip_db:
+            logger.warning(">>> STAGE 13 — Skipped (--skip-db)")
+            db_json = _latest_raw("12_db")
+        else:
+            logger.warning(">>> STAGE 13 — Skipped (no --server specified)")
+
+        # ------------------------------------------------------------------
+        # STAGE 14 — SNMP Analysis
+        # ------------------------------------------------------------------
+        if not args.skip_snmp and args.server:
+            if _port_open(udp=(161,)):
+                logger.info(f">>> STAGE 14 — SNMP Analysis  ({args.server})")
+                try:
+                    snmp_json = scan_snmp(args.server, TIMESTAMP, RANDOM_SUFFIX, root=ROOT)
+                except Exception as _exc:
+                    logger.warning(f">>> STAGE 14 — Failed: {_exc}")
+            else:
+                logger.info(">>> STAGE 14 — Skipped (UDP 161 not open from Stage 0)")
+        elif args.skip_snmp:
+            logger.warning(">>> STAGE 14 — Skipped (--skip-snmp)")
+            snmp_json = _latest_raw("13_snmp")
+        else:
+            logger.warning(">>> STAGE 14 — Skipped (no --server specified)")
+
+        # ------------------------------------------------------------------
+        # STAGE 15 — Kerberos KDC Analysis
+        # ------------------------------------------------------------------
+        if not args.skip_kerberos and args.server:
+            if _port_open(88):
+                logger.info(f">>> STAGE 15 — Kerberos Analysis  ({args.server})")
+                try:
+                    kerberos_json = scan_kerberos(args.server, TIMESTAMP, RANDOM_SUFFIX, root=ROOT)
+                except Exception as _exc:
+                    logger.warning(f">>> STAGE 15 — Failed: {_exc}")
+            else:
+                logger.info(">>> STAGE 15 — Skipped (TCP 88 not open from Stage 0)")
+        elif args.skip_kerberos:
+            logger.warning(">>> STAGE 15 — Skipped (--skip-kerberos)")
+            kerberos_json = _latest_raw("14_kerberos")
+        else:
+            logger.warning(">>> STAGE 15 — Skipped (no --server specified)")
+
+        # ------------------------------------------------------------------
+        # STAGE 16 — Excel Report
         # ------------------------------------------------------------------
         if not args.skip_report:
             if sbom_json and grype_json and cbom_json and mini_pqc_json:
-                logger.info(">>> STAGE 9 — Excel Report Generation")
-                report_filename = args.report_name or f"pqc_report_{TIMESTAMP}_{RANDOM_SUFFIX}.xlsx"
-                excel_path = (ROOT / "output" / report_filename).resolve()
-                (ROOT / "output").mkdir(parents=True, exist_ok=True)
-                _generate_excel_report(
-                    str(sbom_json),
-                    str(grype_json),
-                    str(cbom_json),
-                    str(mini_pqc_json),
-                    str(excel_path),
-                    tls_path=str(tls_json)    if tls_json    else None,
-                    ssh_path=str(ssh_json)    if ssh_json    else None,
-                    cert_path=str(cert_json)  if cert_json   else None,
-                    config_path=str(config_json) if config_json else None,
-                )
-                logger.success(f">>> STAGE 9 — Report saved: {excel_path}")
+                logger.info(">>> STAGE 16 — Excel Report Generation")
+                try:
+                    report_filename = args.report_name or f"pqc_report_{TIMESTAMP}_{RANDOM_SUFFIX}.xlsx"
+                    excel_path = (ROOT / "output" / report_filename).resolve()
+                    (ROOT / "output").mkdir(parents=True, exist_ok=True)
+                    _generate_excel_report(
+                        str(sbom_json),
+                        str(grype_json),
+                        str(cbom_json),
+                        str(mini_pqc_json),
+                        str(excel_path),
+                        tls_path=str(tls_json)           if tls_json         else None,
+                        ssh_path=str(ssh_json)           if ssh_json         else None,
+                        cert_path=str(cert_json)         if cert_json        else None,
+                        config_path=str(config_json)     if config_json      else None,
+                        starttls_path=str(starttls_json) if starttls_json    else None,
+                        ike_path=str(ike_json)           if ike_json         else None,
+                        rdp_path=str(rdp_json)           if rdp_json         else None,
+                        smb_path=str(smb_json)           if smb_json         else None,
+                        db_path=str(db_json)             if db_json          else None,
+                        snmp_path=str(snmp_json)         if snmp_json        else None,
+                        kerberos_path=str(kerberos_json) if kerberos_json    else None,
+                    )
+                    logger.success(f">>> STAGE 16 — Report saved: {excel_path}")
+                except Exception as _exc:
+                    logger.error(f">>> STAGE 16 — Report generation failed: {_exc}")
+                    excel_path = None
             else:
                 missing = [
                     name for name, val in [
-                        ("SBOM",  sbom_json),
-                        ("VA",    grype_json),
-                        ("CBOM",  cbom_json),
-                        ("PQC",   mini_pqc_json),
+                        ("SBOM", sbom_json), ("VA", grype_json),
+                        ("CBOM", cbom_json), ("PQC", mini_pqc_json),
                     ] if not val
                 ]
                 logger.warning(
-                    f">>> STAGE 9 — Skipped (missing required outputs: {', '.join(missing)}). "
+                    f">>> STAGE 16 — Skipped (missing required outputs: {', '.join(missing)}). "
                     "Run all stages or use --skip-* flags to reuse existing files."
                 )
         else:
-            logger.warning(">>> STAGE 9 — Skipped (--skip-report)")
+            logger.warning(">>> STAGE 16 — Skipped (--skip-report)")
 
     except KeyboardInterrupt:
         logger.error("Scan interrupted by user (Ctrl+C).")
         return 130
-    except Exception as exc:
-        logger.exception(f"Fatal error during scan: {exc}")
-        return 1
 
     # ------------------------------------------------------------------
     # SUMMARY
     # ------------------------------------------------------------------
-    print_summary(sbom_json, grype_json, mini_pqc_json, cbom_json,
-                  tls_json, ssh_json, cert_json, config_json, excel_path)
+    print_summary(
+        sbom_json, grype_json, mini_pqc_json, cbom_json,
+        tls_json, ssh_json, cert_json, config_json, excel_path,
+        ports_json=ports_json,
+        starttls_json=starttls_json,
+        ike_json=ike_json,
+        rdp_json=rdp_json,
+        smb_json=smb_json,
+        db_json=db_json,
+        snmp_json=snmp_json,
+        kerberos_json=kerberos_json,
+    )
     return 0
 
 

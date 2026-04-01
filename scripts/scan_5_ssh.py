@@ -42,12 +42,16 @@ _CLASSICAL_WEAK_KEX = {
 
 _PQC_HYBRID_KEX = {
     # Hybrid PQC+classical KEX — provides harvest-now/decrypt-later protection
-    "sntrup761x25519-sha512@openssh.com",   # OpenSSH 8.5+ (NTRU Prime)
-    "mlkem768x25519-sha256",                 # ML-KEM-768 + X25519 draft
-    "mlkem1024x25519-sha256",                # ML-KEM-1024 + X25519
-    "kyber-512r3-x25519-sha256",             # early Kyber drafts
-    "kyber-768r3-x25519-sha384",
-    "kyber-1024r3-x25519-sha512",
+    "sntrup761x25519-sha512@openssh.com",       # OpenSSH 8.5+ (NTRU Prime hybrid)
+    "mlkem768x25519-sha256",                     # ML-KEM-768 + X25519 (IETF draft)
+    "mlkem768x25519-sha256@openssh.com",         # OpenSSH vendor variant
+    "mlkem1024x25519-sha256",                    # ML-KEM-1024 + X25519
+    "mlkem1024x25519-sha256@openssh.com",        # OpenSSH vendor variant
+    "kyber-512r3-x25519-sha256",                 # early Kyber draft
+    "kyber-768r3-x25519-sha384",                 # early Kyber draft
+    "kyber-1024r3-x25519-sha512",                # early Kyber draft
+    "x25519-kyber-512r3v1@openquantumsafe.org",  # OQS vendor
+    "x25519-kyber-768r3v1@openquantumsafe.org",  # OQS vendor
 }
 
 _WEAK_HOST_KEY = {
@@ -69,12 +73,17 @@ _WEAK_CIPHER = {
 }
 
 _WEAK_MAC = {
-    "hmac-md5":                  "HMAC-MD5 — MD5 deprecated (RFC 6151)",
-    "hmac-md5-96":               "HMAC-MD5-96 — deprecated",
-    "hmac-sha1":                 "HMAC-SHA1 — SHA-1 deprecated (NIST 2030)",
-    "hmac-sha1-96":              "HMAC-SHA1-96 — deprecated",
-    "hmac-ripemd160":            "HMAC-RIPEMD160 — deprecated",
-    "hmac-ripemd160@openssh.com":"HMAC-RIPEMD160 — deprecated",
+    "hmac-md5":                      "HMAC-MD5 — MD5 deprecated (RFC 6151)",
+    "hmac-md5-96":                   "HMAC-MD5-96 — deprecated",
+    "hmac-md5-etm@openssh.com":      "HMAC-MD5-ETM — MD5 deprecated (RFC 6151)",
+    "hmac-md5-96-etm@openssh.com":   "HMAC-MD5-96-ETM — deprecated",
+    "hmac-sha1":                     "HMAC-SHA1 — SHA-1 deprecated (NIST 2030)",
+    "hmac-sha1-96":                  "HMAC-SHA1-96 — deprecated",
+    "hmac-sha1-etm@openssh.com":     "HMAC-SHA1-ETM — SHA-1 deprecated (NIST 2030)",
+    "hmac-sha1-96-etm@openssh.com":  "HMAC-SHA1-96-ETM — deprecated",
+    "hmac-ripemd160":                "HMAC-RIPEMD160 — deprecated",
+    "hmac-ripemd160@openssh.com":    "HMAC-RIPEMD160 — deprecated",
+    "hmac-ripemd160-etm@openssh.com":"HMAC-RIPEMD160-ETM — deprecated",
 }
 
 
@@ -185,10 +194,14 @@ def _analyse_kexinit(kex: dict, hostname: str, port: int) -> dict:
     pqc_indicators: list = []
     recommendations: list = []
 
-    kex_algos = kex.get("kex_algorithms", [])
-    hk_algos  = kex.get("server_host_key_algorithms", [])
-    enc_algos = kex.get("encryption_algorithms_client_to_server", [])
-    mac_algos = kex.get("mac_algorithms_client_to_server", [])
+    kex_algos  = kex.get("kex_algorithms", [])
+    hk_algos   = kex.get("server_host_key_algorithms", [])
+    enc_algos  = kex.get("encryption_algorithms_client_to_server", [])
+    enc_algos += [a for a in kex.get("encryption_algorithms_server_to_client", [])
+                  if a not in enc_algos]
+    mac_algos  = kex.get("mac_algorithms_client_to_server", [])
+    mac_algos += [a for a in kex.get("mac_algorithms_server_to_client", [])
+                  if a not in mac_algos]
 
     # --- key exchange ---
     for algo in kex_algos:
