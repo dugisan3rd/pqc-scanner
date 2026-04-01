@@ -88,16 +88,6 @@ def populate_sheet(ws, headers, rows, header_row=4):
     autosize(ws)
 
 
-# kept for backward compatibility with TLS/SSH/cert/config sheet writers
-def clear_data_rows(ws):
-    if ws.max_row >= 5:
-        ws.delete_rows(5, ws.max_row - 4)
-
-def append_rows(ws, headers, rows):
-    for r in rows:
-        ws.append([r.get(h, "") for h in headers])
-
-
 # ---------------------------------------------------------------------------
 # Severity helpers
 # ---------------------------------------------------------------------------
@@ -342,7 +332,7 @@ def parse_inventory_rows(
                 name        = nginx_info[:80],
                 location    = mini_pqc.get("server_ip", "Scan Target"),
                 crypto_present = "Yes",
-                algos       = "TLS (see TLS scan sheet)",
+                algos       = "TLS (see 2_CBOM sheet)",
                 sbom_cbom   = "Yes (mini-pqc)",
                 readiness   = "Low",
                 notes       = _mini_text(recs, module_id=5, kind=0)[:200] or
@@ -502,7 +492,7 @@ def parse_inventory_rows(
                     f"{total_certs} cert/key file(s) found; "
                     f"{expired} expired; "
                     f"{priv_keys} private key file(s) — consider HSM storage; "
-                    f"{total_findings} total finding(s). See 7_CertFiles sheet."
+                    f"{total_findings} total finding(s). See 2_CBOM sheet for details."
                 ),
             )
 
@@ -528,7 +518,7 @@ def parse_inventory_rows(
                 notes       = (
                     f"{total_findings} finding(s): "
                     f"{critical_n} Critical, {high_n} High. "
-                    "See 8_ConfigFiles sheet for file-level details."
+                    "See 2_CBOM sheet for file-level details."
                 ),
             )
 
@@ -1041,210 +1031,233 @@ RA_HEADERS = [
 # Main
 # ---------------------------------------------------------------------------
 
-def _write_scan_sheet(wb, sheet_name, title, description, headers, rows):
-    """Create a new supplementary scan-result sheet with preamble + data."""
-    ws = wb.create_sheet(sheet_name)
-    # Row 1: title
-    ws.append([title])
-    ws.cell(1, 1).font = Font(bold=True, size=12)
-    # Row 2: description
-    ws.append([description])
-    ws.cell(2, 1).alignment = Alignment(wrap_text=True)
-    # Row 3: blank
-    ws.append([])
-    # Row 4: headers
-    ws.append(headers)
-    style_header_row(ws, row=4)
-    # Data rows
-    for r in rows:
-        ws.append([r.get(h, "") for h in headers])
-    wrap_data_rows(ws)
-    autosize(ws)
-    return ws
-
-
 # ---------------------------------------------------------------------------
-# TLS findings → rows
+# Convert scan data (TLS/SSH/Cert/Config) → CBOM-compatible rows for sheets 0-4
 # ---------------------------------------------------------------------------
 
-def parse_tls_rows(tls_data: dict) -> list:
+def _pqc_risk_from_sev(severity: str) -> str:
+    s = (severity or "").strip().lower()
+    if s in ("critical", "high"):
+        return "High"
+    if s == "medium":
+        return "Medium"
+    return "Low"
+
+
+def _extract_algo_from_cipher(cipher_suite: str) -> str:
+    """Extract the primary key-exchange/auth algorithm from a TLS cipher suite name."""
+    if not cipher_suite:
+        return ""
+    cs = cipher_suite.upper()
+    if "ECDHE" in cs or "ECDH_" in cs:
+        return "ECDH"
+    if "DHE_" in cs or "_DH_" in cs:
+        return "DH"
+    if "RSA" in cs:
+        return "RSA"
+    if "3DES" in cs:
+        return "3DES"
+    if "RC4" in cs:
+        return "RC4"
+    if "AES_128" in cs:
+        return "AES-128"
+    if "AES_256" in cs:
+        return "AES-256"
+    if "CHACHA20" in cs:
+        return "ChaCha20"
+    return cipher_suite
+
+
+def tls_to_cbom_rows(tls_data: dict, start_idx: int = 1) -> list:
+    """Convert TLS scan results (sheet 5) into CBOM-compatible rows."""
     rows = []
+    idx = start_idx
+    sev_rank = {"critical": 4, "high": 3, "medium": 2, "low": 1}
     for chk in tls_data.get("tls_checks", []):
-        host      = chk.get("hostname", "")
-        port      = chk.get("port", "")
-        tls_ver   = chk.get("tls_version") or chk.get("error", "ERROR")
-        cipher_d  = chk.get("cipher_suite") or {}
-        cert_d    = chk.get("certificate") or {}
-        pqc_ready = "Yes" if chk.get("pqc_indicators") else "No"
-        pqc_ind   = ", ".join(chk.get("pqc_indicators", []))
-        error     = chk.get("error", "")
-
+        host   = chk.get("hostname", "")
+        port   = chk.get("port", "")
+        error  = chk.get("error", "")
+        system = f"{host}:{port}" if port else host
         if error:
             rows.append({
-                "Host": host, "Port": port, "TLS Version": "ERROR",
-                "Cipher Suite": "", "Key Bits": "", "PQC Ready": "No",
-                "PQC Indicators": "", "Cert Common Name": "", "Cert Issuer": "",
-                "Cert Expiry": "", "Days Until Expiry": "",
-                "Weak Findings": error, "Recommendations": "",
+                "# (CBOM)":               f"CBOM #{idx}",
+                "System / Application":   system,
+                "File Path":              "",
+                "Line":                   "",
+                "Cryptographic Function": "TLS Connection",
+                "Algorithm Used":         "",
+                "Library / Module":       "TLS/SSL",
+                "Key Length":             "",
+                "Purpose / Usage":        "TLS/SSL encrypted connection",
+                "PQC Risk":               "High",
+                "Crypto-Agility Support": "No",
+                "Finding / Vulnerability": error,
+                "_path": system, "_line": "", "_mitigation": "Verify TLS service is reachable and review its configuration.",
             })
+            idx += 1
             continue
-
-        weak = "; ".join(
+        cipher_d   = chk.get("cipher_suite") or {}
+        tls_ver    = chk.get("tls_version", "")
+        pqc_ind    = chk.get("pqc_indicators", [])
+        weak       = chk.get("weak_findings", [])
+        recs       = "\n".join(chk.get("recommendations", []))
+        cipher_name = cipher_d.get("name", "")
+        algo = _extract_algo_from_cipher(cipher_name) or cipher_name
+        weak_str = "; ".join(
             f"{w.get('type')} [{w.get('severity')}]: {w.get('detail','')}"
-            for w in chk.get("weak_findings", [])
+            for w in weak
         )
-        recs = "\n".join(chk.get("recommendations", []))
-
         rows.append({
-            "Host":              host,
-            "Port":              port,
-            "TLS Version":       tls_ver,
-            "Cipher Suite":      cipher_d.get("name", ""),
-            "Key Bits":          cipher_d.get("key_bits", ""),
-            "PQC Ready":         pqc_ready,
-            "PQC Indicators":    pqc_ind,
-            "Cert Common Name":  cert_d.get("common_name", ""),
-            "Cert Issuer":       cert_d.get("issuer_cn", ""),
-            "Cert Expiry":       cert_d.get("not_after", ""),
-            "Days Until Expiry": cert_d.get("days_until_expiry", ""),
-            "Weak Findings":     weak,
-            "Recommendations":   recs,
+            "# (CBOM)":               f"CBOM #{idx}",
+            "System / Application":   system,
+            "File Path":              "",
+            "Line":                   "",
+            "Cryptographic Function": "TLS Key Exchange / Authentication",
+            "Algorithm Used":         algo,
+            "Library / Module":       f"TLS {tls_ver}".strip(),
+            "Key Length":             str(cipher_d.get("key_bits", "")),
+            "Purpose / Usage":        "TLS/SSL encrypted connection",
+            "PQC Risk":               "Low" if pqc_ind else ("High" if weak else "Medium"),
+            "Crypto-Agility Support": "Partial",
+            "Finding / Vulnerability": weak_str or "No weak findings detected",
+            "_path": system, "_line": "", "_mitigation": recs,
         })
+        idx += 1
     return rows
 
 
-TLS_HEADERS = [
-    "Host", "Port", "TLS Version", "Cipher Suite", "Key Bits",
-    "PQC Ready", "PQC Indicators", "Cert Common Name", "Cert Issuer",
-    "Cert Expiry", "Days Until Expiry", "Weak Findings", "Recommendations",
-]
-
-
-# ---------------------------------------------------------------------------
-# SSH findings → rows
-# ---------------------------------------------------------------------------
-
-def parse_ssh_rows(ssh_data: dict) -> list:
+def ssh_to_cbom_rows(ssh_data: dict, start_idx: int = 1) -> list:
+    """Convert SSH scan results (sheet 6) into CBOM-compatible rows."""
     rows = []
+    idx = start_idx
     for chk in ssh_data.get("ssh_checks", []):
         host   = chk.get("hostname", "")
         port   = chk.get("port", "")
-        banner = chk.get("banner", "")
         error  = chk.get("error", "")
-
+        system = f"{host}:{port}" if port else host
+        banner = chk.get("banner", "")
         if error:
             rows.append({
-                "Host": host, "Port": port, "Banner": "", "PQC Ready": "No",
-                "PQC Indicators": "", "Category": "ERROR", "Algorithm": "",
-                "Severity": "", "Detail": error, "Recommendation": "",
+                "# (CBOM)":               f"CBOM #{idx}",
+                "System / Application":   system,
+                "File Path":              "",
+                "Line":                   "",
+                "Cryptographic Function": "SSH Connection",
+                "Algorithm Used":         "",
+                "Library / Module":       "SSH",
+                "Key Length":             "",
+                "Purpose / Usage":        "SSH remote access",
+                "PQC Risk":               "High",
+                "Crypto-Agility Support": "No",
+                "Finding / Vulnerability": error,
+                "_path": system, "_line": "", "_mitigation": "Verify SSH service is reachable.",
             })
+            idx += 1
             continue
-
-        pqc_ready = "Yes" if chk.get("pqc_ready") else "No"
-        pqc_ind   = ", ".join(chk.get("pqc_indicators", []))
-
-        if not chk.get("weak_findings"):
+        pqc_ind = chk.get("pqc_indicators", [])
+        weak    = chk.get("weak_findings", [])
+        recs    = "\n".join(chk.get("recommendations", []))
+        lib_ver = banner[:60] if banner else "SSH"
+        if not weak:
             rows.append({
-                "Host": host, "Port": port, "Banner": banner,
-                "PQC Ready": pqc_ready, "PQC Indicators": pqc_ind,
-                "Category": "", "Algorithm": "", "Severity": "Info",
-                "Detail": "No weak algorithms detected",
-                "Recommendation": "\n".join(chk.get("recommendations", [])),
+                "# (CBOM)":               f"CBOM #{idx}",
+                "System / Application":   system,
+                "File Path":              "",
+                "Line":                   "",
+                "Cryptographic Function": "SSH Key Exchange",
+                "Algorithm Used":         "SSH (no weak algorithms)",
+                "Library / Module":       lib_ver,
+                "Key Length":             "",
+                "Purpose / Usage":        "SSH remote access",
+                "PQC Risk":               "Low" if pqc_ind else "Medium",
+                "Crypto-Agility Support": "Yes" if pqc_ind else "Partial",
+                "Finding / Vulnerability": "No weak algorithms detected",
+                "_path": system, "_line": "", "_mitigation": recs,
             })
+            idx += 1
         else:
-            for wf in chk.get("weak_findings", []):
+            for wf in weak:
                 rows.append({
-                    "Host":           host,
-                    "Port":           port,
-                    "Banner":         banner,
-                    "PQC Ready":      pqc_ready,
-                    "PQC Indicators": pqc_ind,
-                    "Category":       wf.get("category", ""),
-                    "Algorithm":      wf.get("algorithm", ""),
-                    "Severity":       wf.get("severity", ""),
-                    "Detail":         wf.get("detail", ""),
-                    "Recommendation": wf.get("recommendation", ""),
+                    "# (CBOM)":               f"CBOM #{idx}",
+                    "System / Application":   system,
+                    "File Path":              "",
+                    "Line":                   "",
+                    "Cryptographic Function": wf.get("category", "SSH Algorithm"),
+                    "Algorithm Used":         wf.get("algorithm", ""),
+                    "Library / Module":       lib_ver,
+                    "Key Length":             "",
+                    "Purpose / Usage":        "SSH remote access",
+                    "PQC Risk":               _pqc_risk_from_sev(wf.get("severity", "")),
+                    "Crypto-Agility Support": "No",
+                    "Finding / Vulnerability": wf.get("detail", ""),
+                    "_path": system, "_line": "", "_mitigation": wf.get("recommendation", ""),
                 })
+                idx += 1
     return rows
 
 
-SSH_HEADERS = [
-    "Host", "Port", "Banner", "PQC Ready", "PQC Indicators",
-    "Category", "Algorithm", "Severity", "Detail", "Recommendation",
-]
-
-
-# ---------------------------------------------------------------------------
-# Cert file findings → rows
-# ---------------------------------------------------------------------------
-
-def parse_cert_rows(cert_data: dict) -> list:
+def cert_to_cbom_rows(cert_data: dict, start_idx: int = 1) -> list:
+    """Convert certificate/key file scan results (sheet 7) into CBOM-compatible rows."""
     rows = []
+    idx = start_idx
     for entry in cert_data.get("cert_file_scan", []):
         file_path = entry.get("file", "")
-        algo      = entry.get("algorithm", "")
+        algo      = entry.get("algorithm", "") or entry.get("signature_algorithm", "")
         key_bits  = entry.get("key_bits", "")
         qrisk     = entry.get("quantum_risk", "")
         cert_type = entry.get("type", "")
         subject   = entry.get("subject_cn", "")
-        issuer    = entry.get("issuer_cn", "")
-        expiry    = entry.get("not_after", "")
-        days      = entry.get("days_until_expiry", "")
-        sig_algo  = entry.get("signature_algorithm", "")
-
         for f in entry.get("findings", []):
             rows.append({
-                "File":              file_path,
-                "Type":              cert_type,
-                "Algorithm":         algo,
-                "Key Bits":          key_bits,
-                "Quantum Risk":      qrisk,
-                "Subject CN":        subject,
-                "Issuer CN":         issuer,
-                "Signature Algo":    sig_algo,
-                "Expiry Date":       expiry,
-                "Days Until Expiry": days,
-                "Finding Type":      f.get("type", ""),
-                "Severity":          f.get("severity", ""),
-                "Detail":            f.get("detail", ""),
-                "Recommendation":    f.get("recommendation", ""),
+                "# (CBOM)":               f"CBOM #{idx}",
+                "System / Application":   subject or os.path.basename(file_path),
+                "File Path":              file_path,
+                "Line":                   "",
+                "Cryptographic Function": cert_type or "Digital Certificate",
+                "Algorithm Used":         algo,
+                "Library / Module":       "X.509 / PKI",
+                "Key Length":             str(key_bits) if key_bits else "",
+                "Purpose / Usage":        "Certificate / Key File",
+                "PQC Risk":               qrisk or _pqc_risk_from_sev(f.get("severity", "")),
+                "Crypto-Agility Support": "No",
+                "Finding / Vulnerability": f.get("detail", ""),
+                "_path": file_path, "_line": "", "_mitigation": f.get("recommendation", ""),
             })
+            idx += 1
     return rows
 
 
-CERT_HEADERS = [
-    "File", "Type", "Algorithm", "Key Bits", "Quantum Risk",
-    "Subject CN", "Issuer CN", "Signature Algo", "Expiry Date", "Days Until Expiry",
-    "Finding Type", "Severity", "Detail", "Recommendation",
-]
-
-
-# ---------------------------------------------------------------------------
-# Config file findings → rows
-# ---------------------------------------------------------------------------
-
-def parse_config_rows(config_data: dict) -> list:
+def config_to_cbom_rows(config_data: dict, start_idx: int = 1) -> list:
+    """Convert config file weak-crypto scan results (sheet 8) into CBOM-compatible rows."""
     rows = []
+    idx = start_idx
     for entry in config_data.get("config_scan", []):
         file_path = entry.get("file", "")
         for f in entry.get("findings", []):
             rows.append({
-                "File":           file_path,
-                "Line":           f.get("line", ""),
-                "Finding Type":   f.get("finding_type", ""),
-                "Severity":       f.get("severity", ""),
-                "Matched Text":   f.get("matched_text", ""),
-                "Context":        f.get("context_line", ""),
-                "Detail":         f.get("detail", ""),
-                "Recommendation": f.get("recommendation", ""),
+                "# (CBOM)":               f"CBOM #{idx}",
+                "System / Application":   os.path.basename(file_path),
+                "File Path":              file_path,
+                "Line":                   f.get("line", ""),
+                "Cryptographic Function": f.get("finding_type", "Config Weak Crypto"),
+                "Algorithm Used":         f.get("matched_text", ""),
+                "Library / Module":       "Configuration File",
+                "Key Length":             "",
+                "Purpose / Usage":        "Server / Application Configuration",
+                "PQC Risk":               _pqc_risk_from_sev(f.get("severity", "")),
+                "Crypto-Agility Support": "No",
+                "Finding / Vulnerability": f.get("detail", ""),
+                "_path": file_path, "_line": str(f.get("line", "")), "_mitigation": f.get("recommendation", ""),
             })
+            idx += 1
     return rows
 
 
-CONFIG_HEADERS = [
-    "File", "Line", "Finding Type", "Severity",
-    "Matched Text", "Context", "Detail", "Recommendation",
-]
+def renumber_cbom_rows(rows: list) -> list:
+    """Re-assign sequential CBOM # values after combining multiple sources."""
+    for i, r in enumerate(rows, start=1):
+        r["# (CBOM)"] = f"CBOM #{i}"
+    return rows
 
 
 # ---------------------------------------------------------------------------
@@ -1265,16 +1278,31 @@ def main(
     grype_worst = parse_grype_worst_severity_by_pkg(grype)
     sbom_rows   = parse_sbom_rows(sbom, grype_worst)
     cbom_rows   = parse_cbom_rows(cbom)
-    rr_rows, ra_rows = risk_rows_from_cbom(cbom_rows)
 
-    # Optional scan JSONs for inventory
+    # Optional scan JSONs (sheets 5-8 sources)
     tls_data    = load_json(tls_path)    if tls_path    else None
     ssh_data    = load_json(ssh_path)    if ssh_path    else None
     cert_data   = load_json(cert_path)   if cert_path   else None
     config_data = load_json(config_path) if config_path else None
 
+    # Combine scan findings (sheets 5-8) into CBOM rows so all data lands in sheets 0-4
+    extra_cbom: list = []
+    if tls_data:
+        extra_cbom += tls_to_cbom_rows(tls_data, start_idx=len(cbom_rows) + 1)
+    if ssh_data:
+        extra_cbom += ssh_to_cbom_rows(ssh_data, start_idx=len(cbom_rows) + len(extra_cbom) + 1)
+    if cert_data:
+        extra_cbom += cert_to_cbom_rows(cert_data, start_idx=len(cbom_rows) + len(extra_cbom) + 1)
+    if config_data:
+        extra_cbom += config_to_cbom_rows(config_data, start_idx=len(cbom_rows) + len(extra_cbom) + 1)
+
+    all_cbom_rows = renumber_cbom_rows(cbom_rows + extra_cbom)
+
+    # Risk rows are generated from the full combined CBOM
+    rr_rows, ra_rows = risk_rows_from_cbom(all_cbom_rows)
+
     inventory_rows = parse_inventory_rows(
-        sbom, grype_worst, cbom_rows,
+        sbom, grype_worst, all_cbom_rows,
         mini_pqc=_mini, tls_data=tls_data, ssh_data=ssh_data,
         cert_data=cert_data, config_data=config_data,
     )
@@ -1288,70 +1316,22 @@ def main(
     shutil.copy2(TEMPLATE_PATH, out_path)
     wb = load_workbook(out_path)
 
-    # ---- 0_Inventory (auto-populated from all scan sources) ----
+    # ---- 0_Inventory (auto-populated from all scan sources incl. TLS/SSH/Cert/Config) ----
     populate_sheet(wb["0_Inventory"], INVENTORY_HEADERS, inventory_rows)
 
     # ---- 1_SBOM ----
     populate_sheet(wb["1_SBOM"], SBOM_HEADERS, sbom_rows)
 
-    # ---- 2_CBOM (extended: adds File Path, Line, PQC Risk, Finding columns) ----
-    populate_sheet(wb["2_CBOM"], CBOM_HEADERS, cbom_rows)
+    # ---- 2_CBOM (combined: Semgrep + TLS + SSH + Cert + Config findings) ----
+    populate_sheet(wb["2_CBOM"], CBOM_HEADERS, all_cbom_rows)
 
-    # ---- 3_RiskRegister ----
+    # ---- 3_RiskRegister (risk entries from all combined CBOM sources) ----
     populate_sheet(wb["3_RiskRegister"], RR_HEADERS, rr_rows)
 
-    # ---- 4_RiskAssessment ----
+    # ---- 4_RiskAssessment (assessments from all combined CBOM sources) ----
     populate_sheet(wb["4_RiskAssessment"], RA_HEADERS, ra_rows)
 
-    # ---- 5_TLS_Scan ----
-    if tls_data:
-        try:
-            _write_scan_sheet(
-                wb, "5_TLS_Scan",
-                "Table 5 – TLS/SSL Server Cryptographic Analysis",
-                "Live TLS handshake analysis: protocol version, cipher suite, certificate details, and PQC readiness.",
-                TLS_HEADERS, parse_tls_rows(tls_data),
-            )
-        except Exception:
-            pass
-
-    # ---- 6_SSH_Scan ----
-    if ssh_data:
-        try:
-            _write_scan_sheet(
-                wb, "6_SSH_Scan",
-                "Table 6 – SSH Server Algorithm Analysis",
-                "SSH KEX, host-key, cipher, and MAC algorithm analysis against PQC-readiness standards.",
-                SSH_HEADERS, parse_ssh_rows(ssh_data),
-            )
-        except Exception:
-            pass
-
-    # ---- 7_CertFiles ----
-    if cert_data:
-        try:
-            _write_scan_sheet(
-                wb, "7_CertFiles",
-                "Table 7 – Certificate & Key File Scan",
-                "X.509 certificates and private key files found in the target path, checked for weak algorithms, key sizes, and expiry.",
-                CERT_HEADERS, parse_cert_rows(cert_data),
-            )
-        except Exception:
-            pass
-
-    # ---- 8_ConfigFiles ----
-    if config_data:
-        try:
-            _write_scan_sheet(
-                wb, "8_ConfigFiles",
-                "Table 8 – Config File Weak-Crypto Scan",
-                "Server and application configuration files scanned for weak protocols, cipher suites, and deprecated hash algorithms.",
-                CONFIG_HEADERS, parse_config_rows(config_data),
-            )
-        except Exception:
-            pass
-
-    # ---- 0_Inventory, 5_RiskMatrix, 6_ProtocolCryptoMap, 00_ReadMe ----
+    # ---- 5_RiskMatrix, 6_ProtocolCryptoMap, 00_ReadMe ----
     # Kept as-is from the template (static reference content).
 
     wb.save(out_path)

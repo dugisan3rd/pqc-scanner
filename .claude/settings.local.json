@@ -4,7 +4,15 @@
       "Bash(wc -l D:1.CloudOneDriveOneDrive - OrenG AcademyPersonal133710. GitGitHubpqc-scanner - Copyoutputraw/*.json)",
       "Bash(xargs wc:*)",
       "Bash(python3 -c \":*)",
-      "Bash(grep -E \"\\\\.\\(exe|bin\\)$|mini-pqc|grype|syft|semgrep\")"
+      "Bash(grep -E \"\\\\.\\(exe|bin\\)$|mini-pqc|grype|syft|semgrep\")",
+      "Bash(python3 scripts/excel2/pqc_export_full.py --sbom scripts/excel2/sbom.json --grype scripts/excel2/grype.json --cbom scripts/excel2/cbom.json --mini scripts/excel2/mini.json --out output/test_combined_sheets.xlsx)",
+      "Bash(python3 scripts/excel2/pqc_export_full.py --sbom output/raw/1_syft_sbom_1774972027.6116989_j1oh9l.json --grype output/raw/2_grype_va_1774972027.6116989_j1oh9l.json --cbom output/raw/4_semgrep_cbom_1774972027.6116989_j1oh9l.json --mini output/raw/3_mini_pqc_1774972027.6116989_j1oh9l.json --tls output/raw/5_tls_check_1774972027.6116989_j1oh9l.json --ssh output/raw/6_ssh_check_1774972027.6116989_j1oh9l.json --certs output/raw/7_cert_files_1774972027.6116989_j1oh9l.json --config output/raw/8_config_scan_1774972027.6116989_j1oh9l.json --out output/test_combined_full.xlsx)",
+      "Bash(rm -f pqc_scanner.py scripts/compile_excel.py scripts/output_excel.py scripts/excel2/cbom_export_xlsx.py scripts/excel2/cbom_export_xlsx_with_riskregister.py scripts/excel2/cbom_export_xlsx_with_riskregister_and_riskassessment.py scripts/excel2/test-extract.py)",
+      "Bash(rm -rf scripts/excel/ scripts/excel2/test/)",
+      "Bash(python3 -m py_compile scripts/scan_0_portdiscovery.py)",
+      "Bash(python3 -m py_compile scripts/scan_8_starttls.py)",
+      "Bash(python3 -m py_compile scripts/scan_9_ike.py)",
+      "Bash(python3 -m py_compile scripts/scan_10_rdp.py)"
     ]
   }
 }

@@ -1,10 +1,5 @@
 openpyxl
-requests
-pwntools
 python-dotenv
 loguru
 semgrep
-jmespath
-jsonpath-ng
-pandas
 cryptography
